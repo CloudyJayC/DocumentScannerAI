@@ -304,9 +304,10 @@ class AnalysisWorker(QObject):
     status   = pyqtSignal(str)
     finished = pyqtSignal()
 
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, suspicious: dict):
         super().__init__()
         self.file_path = file_path
+        self.suspicious = suspicious  # pre-scanned on file select, avoids double scan
 
     def run(self):
         fp = self.file_path
@@ -314,11 +315,20 @@ class AnalysisWorker(QObject):
         html = ""
 
         try:
-            # Security
+            # Guard: ensure file still exists before doing anything
+            if not os.path.isfile(fp):
+                self.result.emit(
+                    _error_line(f"✗ &nbsp; File no longer found: <b>{name}</b>") +
+                    _error_line("&nbsp;&nbsp;&nbsp;&nbsp;It may have been moved or deleted after selection.")
+                )
+                self.status.emit("● Error · File not found.")
+                self.finished.emit()
+                return
+
+            # Security — use pre-scanned results from file selection
             self.status.emit("● Scanning · Checking for threats…")
             html += _section_header("Security Scan", "#4fc3f7", "🔍")
-            suspicious = scan_pdf_for_malicious_content(fp)
-            found = {k: v for k, v in suspicious.items() if v > 0}
+            found = {k: v for k, v in self.suspicious.items() if v > 0}
 
             if found:
                 html += _warn_line(f"⚠ &nbsp; Suspicious elements detected in <b>{name}</b>:")
@@ -352,6 +362,9 @@ class AnalysisWorker(QObject):
             html += _section_header("AI Resume Analysis", "#f9a825", "🤖")
             html += _coming_soon("AI-powered strengths, weaknesses, skills and recommendations")
 
+        except RuntimeError as e:
+            html += _error_line(f"✗ &nbsp; Could not read PDF: {e}")
+            logging.error(f"PDF read error for {fp}: {e}")
         except Exception as e:
             html += _error_line(f"✗ &nbsp; Unexpected error: {e}")
             logging.error(f"Worker exception for {fp}: {e}")
@@ -380,6 +393,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(900, 600)
         self.resize(1100, 720)
         self.selected_file: str | None = None
+        self._last_scan: dict = {}
         self._thread: QThread | None = None
         self._worker: AnalysisWorker | None = None
 
@@ -577,6 +591,7 @@ class MainWindow(QMainWindow):
                 return
 
         self.selected_file = file_path
+        self._last_scan = suspicious   # store so worker reuses it — no double scan
         self.fileLabel.setText(os.path.basename(file_path))
         self.analyzeButton.setEnabled(True)
         self.resultsTextEdit.clear()
@@ -590,6 +605,13 @@ class MainWindow(QMainWindow):
         if not self.selected_file:
             return
 
+        # If a previous thread is still alive, stop it cleanly before starting a new one
+        if self._thread is not None and self._thread.isRunning():
+            self._thread.quit()
+            self._thread.wait()
+        self._thread = None
+        self._worker = None
+
         self.analyzeButton.setEnabled(False)
         self.selectButton.setEnabled(False)
         self.resultsTextEdit.clear()
@@ -597,7 +619,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Analyzing…")
 
         self._thread = QThread()
-        self._worker = AnalysisWorker(self.selected_file)
+        self._worker = AnalysisWorker(self.selected_file, self._last_scan)
         self._worker.moveToThread(self._thread)
 
         self._thread.started.connect(self._worker.run)
@@ -608,11 +630,11 @@ class MainWindow(QMainWindow):
         self._worker.finished.connect(self._thread.quit)
         self._worker.finished.connect(self._worker.deleteLater)
         self._thread.finished.connect(self._thread.deleteLater)
+        self._thread.finished.connect(self._reset_thread_refs)
 
         self._thread.start()
 
     def _update_dot(self, status: str):
-        """Sync the top-bar dot label with the status bar message."""
         if "Scanning" in status:
             self.statusDot.setText("● Scanning")
         elif "Extracting" in status:
@@ -623,6 +645,10 @@ class MainWindow(QMainWindow):
     def _on_finished(self):
         self.analyzeButton.setEnabled(True)
         self.selectButton.setEnabled(True)
+
+    def _reset_thread_refs(self):
+        self._thread = None
+        self._worker = None
 
 
 # ══════════════════════════════════════════════════════════════════════════════

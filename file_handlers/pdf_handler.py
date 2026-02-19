@@ -1,5 +1,5 @@
 # file_handlers/pdf_handler.py
-# PDF text extraction with cleaning for resume documents.
+# PDF text extraction with cleaning optimised for resume documents.
 
 import re
 import pdfplumber
@@ -8,8 +8,8 @@ import pdfplumber
 def extract_text_from_pdf(file_path: str) -> str:
     """
     Extracts and returns cleaned text from a PDF file.
-    Applies resume-specific cleaning to produce readable output.
-    Returns an empty string if extraction fails.
+    Raises RuntimeError if the file cannot be read.
+    Returns an empty string only if the PDF is genuinely empty/image-only.
     """
     try:
         raw_pages = []
@@ -26,53 +26,37 @@ def extract_text_from_pdf(file_path: str) -> str:
         return _clean_text(raw_text)
 
     except Exception as e:
-        print(f"Error reading PDF file {file_path}: {e}")
-        return ""
+        raise RuntimeError(f"Failed to read PDF: {e}") from e
 
 
 def _clean_text(text: str) -> str:
     """
-    Cleans raw PDF text into a readable format suitable for display and AI analysis.
-
-    Steps:
-      1. Normalize unicode and remove non-printable characters
-      2. Fix words broken across lines by a hyphen (re-join them)
-      3. Collapse runs of whitespace/tabs on a single line into one space
-      4. Remove lines that are pure junk (single characters, only symbols, page numbers)
-      5. Detect likely section headers and ensure they stand out with a blank line above
-      6. Collapse more than two consecutive blank lines into one
-      7. Strip leading/trailing whitespace
+    Cleans raw PDF text into readable format suitable for display and AI analysis.
     """
-
-    # 1. Remove non-printable / non-ASCII junk characters, keep standard punctuation
+    # Remove non-printable characters
     text = text.encode("utf-8", errors="ignore").decode("utf-8")
     text = re.sub(r'[^\x20-\x7E\n]', ' ', text)
 
-    # 2. Re-join hyphenated line breaks (e.g. "experi-\nence" → "experience")
+    # Re-join hyphenated line breaks (e.g. "experi-\nence" -> "experience")
     text = re.sub(r'-\n(\S)', r'\1', text)
 
-    # 3. Collapse horizontal whitespace (tabs, multiple spaces) on each line
+    # Collapse tabs and multiple spaces per line
     lines = text.split("\n")
     lines = [re.sub(r'[ \t]+', ' ', line).strip() for line in lines]
 
-    # 4. Remove junk lines
-    cleaned_lines = []
+    # Remove junk lines (symbols only, single chars, bare page numbers)
+    cleaned = []
     for line in lines:
-        # Skip empty lines at this stage (we'll re-add controlled spacing later)
         if not line:
-            cleaned_lines.append("")
+            cleaned.append("")
             continue
-        # Skip lines that are only symbols/numbers with no real words
         if re.fullmatch(r'[\W\d\s]+', line):
             continue
-        # Skip very short lines that are likely artifacts (single chars, page numbers)
         if len(line) <= 2:
             continue
-        cleaned_lines.append(line)
+        cleaned.append(line)
 
-    # 5. Detect section headers and add a blank line above them for readability.
-    # A header is a short line (under 50 chars) that is either ALL CAPS or Title Case
-    # and doesn't end with a sentence-ending punctuation mark.
+    # Add blank line above detected section headers
     common_headers = {
         "education", "experience", "skills", "summary", "objective",
         "certifications", "projects", "awards", "languages", "interests",
@@ -80,34 +64,28 @@ def _clean_text(text: str) -> str:
         "technical skills", "achievements", "publications", "volunteering",
         "contact", "about", "career objective", "professional summary",
     }
-
-    spaced_lines = []
-    for i, line in enumerate(cleaned_lines):
+    spaced = []
+    for i, line in enumerate(cleaned):
         lower = line.lower().strip()
         is_header = (
             len(line) < 50
             and not line.endswith(('.', ',', ';', ':'))
-            and (
-                line.isupper()
-                or line.istitle()
-                or lower in common_headers
-            )
+            and (line.isupper() or line.istitle() or lower in common_headers)
         )
-        # Add a blank line before headers (but not before the very first line)
-        if is_header and i > 0 and spaced_lines and spaced_lines[-1] != "":
-            spaced_lines.append("")
-        spaced_lines.append(line)
+        if is_header and i > 0 and spaced and spaced[-1] != "":
+            spaced.append("")
+        spaced.append(line)
 
-    # 6. Collapse more than 2 consecutive blank lines into 1
-    final_lines = []
+    # Collapse more than 1 consecutive blank line
+    final = []
     blank_count = 0
-    for line in spaced_lines:
+    for line in spaced:
         if line == "":
             blank_count += 1
             if blank_count <= 1:
-                final_lines.append(line)
+                final.append(line)
         else:
             blank_count = 0
-            final_lines.append(line)
+            final.append(line)
 
-    return "\n".join(final_lines).strip()
+    return "\n".join(final).strip()
