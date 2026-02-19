@@ -1,61 +1,212 @@
 """
 gui_main.py — DocumentScannerAI GUI Entry Point (PyQt6)
 ========================================================
-Loads Main.ui and connects all existing analysis logic to the GUI.
-
-Place this file in your project root, alongside Main.ui:
-
-  project/
-  ├── gui_main.py         ← this file
-  ├── Main.ui
-  ├── main.py
-  ├── file_handlers/
-  │   └── pdf_handler.py
-  ├── analysis/
-  │   ├── keyword_analysis.py
-  │   └── ai_analysis.py
-  ├── security/
-  │   └── ...
-  └── reports/
-      └── report_generator.py
-
-Run with:
-  python gui_main.py
+UI built entirely in Python — no .ui file required.
+Run with: python gui_main.py
 """
 
 import sys
 import os
 import logging
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
-from PyQt6.uic import loadUi
-from PyQt6.QtCore import QThread, pyqtSignal, QObject
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QPushButton, QTextEdit, QFrame, QFileDialog, QMessageBox,
+    QStatusBar, QSizePolicy
+)
+from PyQt6.QtCore import QThread, pyqtSignal, QObject, Qt
+from PyQt6.QtGui import QFont
 
-# ── Your existing modules (matching your subfolder structure) ──────────────────
 from file_handlers.pdf_handler import extract_text_from_pdf
-from analysis.keyword_analysis import analyze_keywords
-from analysis.ai_analysis import ai_analyze_text
-from reports.report_generator import generate_text_report
 
-# ── Logging setup (mirrors error_handling.py but GUI-friendly) ─────────────────
 logging.basicConfig(
     filename="scanner.log",
     level=logging.INFO,
     format="%(asctime)s %(levelname)s: %(message)s"
 )
 
+# ══════════════════════════════════════════════════════════════════════════════
+# Stylesheet
+# ══════════════════════════════════════════════════════════════════════════════
+
+APP_STYLE = """
+QMainWindow, QWidget {
+    background-color: #0f1117;
+    color: #e2e8f0;
+    font-family: "Segoe UI", sans-serif;
+    font-size: 13px;
+    border: none;
+}
+
+QWidget#sidebar {
+    background-color: #0a0d14;
+    border-right: 1px solid #1e2433;
+}
+
+QLabel#appIcon {
+    color: #6ee7f7;
+    font-size: 26px;
+}
+QLabel#appName {
+    color: #f0f6ff;
+    font-size: 15px;
+    font-weight: 700;
+}
+QLabel#appTagline {
+    color: #374151;
+    font-size: 10px;
+}
+QLabel#sectionLabel, QLabel#analyzeLabel {
+    color: #2d3748;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+QLabel#fileLabelHeader {
+    color: #2d3f5a;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+QLabel#fileLabel {
+    color: #7dd3fc;
+    font-size: 11px;
+}
+QLabel#versionLabel {
+    color: #1f2d42;
+    font-size: 10px;
+}
+QLabel#pageTitle {
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 600;
+}
+QLabel#statusDot {
+    color: #374151;
+    font-size: 11px;
+}
+
+QWidget#fileInfoBox {
+    background-color: #0d1120;
+    border: 1px solid #1e2433;
+    border-radius: 6px;
+}
+
+QFrame#divider {
+    color: #1e2433;
+    background-color: #1e2433;
+    max-height: 1px;
+    border: none;
+}
+
+QWidget#topBar {
+    background-color: #0c0f1a;
+    border-bottom: 1px solid #1e2433;
+}
+
+QPushButton#selectButton {
+    background-color: #1a2035;
+    color: #93c5fd;
+    border: 1px solid #2a3654;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+}
+QPushButton#selectButton:hover {
+    background-color: #1e2a45;
+    border-color: #3b82f6;
+    color: #bfdbfe;
+}
+QPushButton#selectButton:pressed {
+    background-color: #172038;
+}
+
+QPushButton#analyzeButton {
+    background-color: #1a3a2a;
+    color: #6ee7b7;
+    border: 1px solid #2a5a40;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+}
+QPushButton#analyzeButton:hover {
+    background-color: #1e4a35;
+    border-color: #10b981;
+    color: #a7f3d0;
+}
+QPushButton#analyzeButton:pressed {
+    background-color: #163028;
+}
+QPushButton#analyzeButton:disabled {
+    background-color: #111820;
+    color: #2d3748;
+    border-color: #1a2030;
+}
+
+QTextEdit#resultsTextEdit {
+    background-color: #0f1117;
+    color: #cbd5e1;
+    border: none;
+    padding: 24px 32px;
+    font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+    font-size: 12px;
+    selection-background-color: #1e3a5f;
+}
+
+QScrollBar:vertical {
+    background: #0a0d14;
+    width: 6px;
+    border: none;
+}
+QScrollBar::handle:vertical {
+    background: #1e2a3d;
+    border-radius: 3px;
+    min-height: 30px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #2a3d5a;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+QStatusBar {
+    background-color: #080b11;
+    color: #374151;
+    font-size: 10px;
+    border-top: 1px solid #111825;
+    padding: 0 12px;
+}
+
+QMessageBox {
+    background-color: #0f1117;
+    color: #e2e8f0;
+}
+QMessageBox QPushButton {
+    background-color: #1a2035;
+    color: #93c5fd;
+    border: 1px solid #2a3654;
+    border-radius: 5px;
+    padding: 6px 18px;
+    min-width: 70px;
+}
+QMessageBox QPushButton:hover {
+    background-color: #1e2a45;
+    border-color: #3b82f6;
+}
+"""
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Validation — inlined here so we don't depend on config.py / pdfid_stub.py
+# Validation
 # ══════════════════════════════════════════════════════════════════════════════
 
 ALLOWED_EXTENSIONS = {".pdf"}
 
+
 def is_pdf_file(file_path: str) -> bool:
-    """
-    Two-layer PDF check:
-      1. File extension must be .pdf
-      2. File must start with the PDF magic number (%PDF-)
-    """
     _, ext = os.path.splitext(file_path)
     if ext.lower() not in ALLOWED_EXTENSIONS:
         return False
@@ -68,28 +219,9 @@ def is_pdf_file(file_path: str) -> bool:
 
 
 def scan_pdf_for_malicious_content(file_path: str) -> dict:
-    """
-    Scans the raw PDF bytes for known dangerous keywords.
-    Returns a dict of { element_name: count } for anything suspicious found.
-    This is a lightweight heuristic scan — not a replacement for a full AV tool.
-
-    Dangerous indicators checked:
-      /JS / /JavaScript  — embedded JavaScript (common in exploits)
-      /AA / /OpenAction  — auto-actions that run on open
-      /Launch            — can execute external programs
-      /EmbeddedFile      — hidden file attachments
-      /AcroForm          — interactive forms (lower risk, flagged for info)
-      /RichMedia         — Flash/media embeds (legacy attack vector)
-    """
     suspicious_keywords = {
-        "/JS": 0,
-        "/JavaScript": 0,
-        "/AA": 0,
-        "/OpenAction": 0,
-        "/Launch": 0,
-        "/EmbeddedFile": 0,
-        "/AcroForm": 0,
-        "/RichMedia": 0,
+        "/JS": 0, "/JavaScript": 0, "/AA": 0, "/OpenAction": 0,
+        "/Launch": 0, "/EmbeddedFile": 0, "/AcroForm": 0, "/RichMedia": 0,
     }
     try:
         with open(file_path, "rb") as f:
@@ -102,18 +234,75 @@ def scan_pdf_for_malicious_content(file_path: str) -> dict:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Worker — runs the heavy analysis in a background thread so the UI never freezes
+# HTML helpers
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _section_header(title: str, color: str, icon: str = "") -> str:
+    return (
+        f'<div style="margin-top:28px; margin-bottom:10px;">'
+        f'<span style="color:{color}; font-size:9px; font-weight:700; '
+        f'letter-spacing:2.5px; font-family:Segoe UI,sans-serif;">'
+        f'{icon}&nbsp;&nbsp;{title.upper()}'
+        f'</span>'
+        f'<hr style="border:none; border-top:1px solid #1a2236; margin-top:6px; margin-bottom:0;">'
+        f'</div>'
+    )
+
+
+def _ok_line(text: str) -> str:
+    return f'<p style="color:#6ee7b7; font-size:11px; margin:4px 0 0 2px;">{text}</p>'
+
+
+def _warn_line(text: str) -> str:
+    return f'<p style="color:#fbbf24; font-size:11px; margin:3px 0 0 2px;">{text}</p>'
+
+
+def _error_line(text: str) -> str:
+    return f'<p style="color:#f87171; font-size:11px; font-weight:600; margin:3px 0 0 2px;">{text}</p>'
+
+
+def _coming_soon(label: str) -> str:
+    return (
+        f'<p style="color:#1f2d42; font-style:italic; font-size:11px; margin:6px 0 0 2px;">'
+        f'[ {label} — coming in next patch ]</p>'
+    )
+
+
+def _text_block(text: str) -> str:
+    escaped = (
+        text
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+    lines_html = []
+    for line in escaped.split("\n"):
+        stripped = line.strip()
+        if not stripped:
+            lines_html.append("<br>")
+        elif stripped.isupper() and len(stripped) < 40:
+            lines_html.append(
+                f'<span style="color:#7dd3fc; font-weight:700; font-size:11px;">{line}</span><br>'
+            )
+        else:
+            lines_html.append(f"{line}<br>")
+    return (
+        '<p style="font-family:Cascadia Code,Fira Code,Consolas,monospace; '
+        'font-size:11.5px; color:#94a3b8; line-height:1.75; margin:6px 0 0 2px;">'
+        + "".join(lines_html)
+        + "</p>"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Worker
 # ══════════════════════════════════════════════════════════════════════════════
 
 class AnalysisWorker(QObject):
-    """
-    Runs the full pipeline (scan → extract → keyword → AI → report) off the
-    main thread. Emits signals back to the GUI so everything stays responsive.
-    """
-    progress = pyqtSignal(str)   # plain progress / info lines
-    warning  = pyqtSignal(str)   # orange warnings
-    error    = pyqtSignal(str)   # red errors
-    finished = pyqtSignal()      # emitted when done (success or fail)
+    result   = pyqtSignal(str)
+    status   = pyqtSignal(str)
+    finished = pyqtSignal()
 
     def __init__(self, file_path: str):
         super().__init__()
@@ -121,227 +310,319 @@ class AnalysisWorker(QObject):
 
     def run(self):
         fp = self.file_path
-        self.progress.emit(f"Analyzing: {os.path.basename(fp)}\n")
+        name = os.path.basename(fp)
+        html = ""
 
-        # ── Step 1: Security scan ──────────────────────────────────────────────
-        self.progress.emit("🔍 Scanning for suspicious PDF elements...")
-        suspicious = scan_pdf_for_malicious_content(fp)
-        found = {k: v for k, v in suspicious.items() if v > 0}
-
-        if found:
-            self.warning.emit("⚠️  Suspicious elements detected:")
-            for element, count in found.items():
-                self.warning.emit(f"     {element}: {count} occurrence(s)")
-            self.warning.emit(
-                "\nProceed with caution. This file may contain active content.\n"
-            )
-            logging.warning(f"Suspicious elements in {fp}: {found}")
-        else:
-            self.progress.emit("✅ Security scan passed — no suspicious elements found.\n")
-            logging.info(f"Clean file: {fp}")
-
-        # ── Step 2: Text extraction ────────────────────────────────────────────
-        self.progress.emit("📄 Extracting text from PDF...")
-        text = extract_text_from_pdf(fp)
-
-        if not text:
-            self.error.emit("❌ No text could be extracted from this PDF.")
-            self.error.emit("   The file may be scanned/image-only or encrypted.")
-            logging.error(f"No text extracted: {fp}")
-            self.finished.emit()
-            return
-
-        preview = text[:400].replace("\n", " ")
-        self.progress.emit(f"Preview: {preview}…\n")
-
-        # ── Step 3: Keyword analysis ───────────────────────────────────────────
-        self.progress.emit("─── Keyword Analysis ────────────────────────────")
-        kw = analyze_keywords(text)
-        self.progress.emit(f"Total words  : {kw['word_count']}")
-        self.progress.emit(f"Unique words : {kw['unique_words']}")
-        self.progress.emit("Top 10 keywords:")
-        for word, freq in kw["keywords"]:
-            bar = "█" * min(freq, 30)
-            self.progress.emit(f"   {word:<20} {freq:>4}  {bar}")
-        self.progress.emit("")
-        logging.info(f"Keyword analysis done: {fp}")
-
-        # ── Step 4: AI / NLP entity analysis ──────────────────────────────────
-        self.progress.emit("─── AI-Powered Entity Analysis ──────────────────")
-        ai = ai_analyze_text(text)
-
-        if "error" in ai:
-            self.warning.emit(f"⚠️  AI Analysis unavailable: {ai['error']}")
-            logging.warning(f"AI error for {fp}: {ai['error']}")
-        else:
-            self.progress.emit("Summary (first 3 sentences):")
-            self.progress.emit(ai["summary"])
-            self.progress.emit("")
-
-            label_names = {
-                "PERSON":  "👤 People",
-                "ORG":     "🏢 Organizations",
-                "GPE":     "📍 Locations",
-                "DATE":    "📅 Dates",
-                "PERCENT": "📊 Percentages",
-                "CARDINAL":"🔢 Numbers",
-                "LAW":     "⚖️  Legal References",
-                "NORP":    "🌐 Groups / Nationalities",
-            }
-            grouped = ai.get("entities_grouped", {})
-            if grouped:
-                for label, ents in grouped.items():
-                    unique_ents = sorted(set(ents))
-                    if unique_ents:
-                        header = label_names.get(label, f"📌 {label}")
-                        self.progress.emit(f"{header}:")
-                        for ent in unique_ents:
-                            self.progress.emit(f"   • {ent}")
-                        self.progress.emit("")
-            else:
-                self.progress.emit("No named entities found.")
-            logging.info(f"AI analysis done: {fp}")
-
-        # ── Step 5: Save report ────────────────────────────────────────────────
         try:
-            report_path = generate_text_report(fp, suspicious, kw, ai)
-            self.progress.emit(f"💾 Report saved to:\n   {report_path}\n")
-            logging.info(f"Report saved: {report_path}")
-        except Exception as e:
-            self.warning.emit(f"⚠️  Could not save report: {e}")
-            logging.error(f"Report error: {e}")
+            # Security
+            self.status.emit("● Scanning · Checking for threats…")
+            html += _section_header("Security Scan", "#4fc3f7", "🔍")
+            suspicious = scan_pdf_for_malicious_content(fp)
+            found = {k: v for k, v in suspicious.items() if v > 0}
 
+            if found:
+                html += _warn_line(f"⚠ &nbsp; Suspicious elements detected in <b>{name}</b>:")
+                for element, count in found.items():
+                    html += _warn_line(f"&nbsp;&nbsp;&nbsp;&nbsp;{element} &nbsp;·&nbsp; {count} occurrence(s)")
+                html += _warn_line("<br>Proceed with caution — file may contain active content.")
+                logging.warning(f"Suspicious elements in {fp}: {found}")
+            else:
+                html += _ok_line(f"✓ &nbsp; No threats detected &nbsp;·&nbsp; {name} is clean")
+                logging.info(f"Clean file: {fp}")
+
+            # Extraction
+            self.status.emit("● Extracting · Reading PDF…")
+            html += _section_header("Extracted Text", "#c084fc", "📄")
+            text = extract_text_from_pdf(fp)
+
+            if not text:
+                html += _error_line("✗ &nbsp; No text could be extracted from this PDF.")
+                html += _error_line("&nbsp;&nbsp;&nbsp;&nbsp;The file may be image-only or encrypted.")
+                logging.error(f"No text extracted: {fp}")
+            else:
+                word_count = len(text.split())
+                html += (
+                    f'<p style="color:#374151; font-size:10px; margin:0 0 8px 2px; '
+                    f'letter-spacing:0.5px;">{word_count:,} words extracted</p>'
+                )
+                html += _text_block(text)
+                logging.info(f"Text extracted: {fp}")
+
+            # AI placeholder
+            html += _section_header("AI Resume Analysis", "#f9a825", "🤖")
+            html += _coming_soon("AI-powered strengths, weaknesses, skills and recommendations")
+
+        except Exception as e:
+            html += _error_line(f"✗ &nbsp; Unexpected error: {e}")
+            logging.error(f"Worker exception for {fp}: {e}")
+
+        self.result.emit(html)
+        self.status.emit("● Ready · Analysis complete.")
         self.finished.emit()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Main Window
+# Main Window — UI built entirely in Python
 # ══════════════════════════════════════════════════════════════════════════════
+
+def _divider() -> QFrame:
+    line = QFrame()
+    line.setObjectName("divider")
+    line.setFrameShape(QFrame.Shape.HLine)
+    line.setFixedHeight(1)
+    return line
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-
-        # Load the Qt Designer file — must be in the same directory as this script
-        ui_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Main.ui")
-        loadUi(ui_path, self)
-
         self.setWindowTitle("DocumentScannerAI")
+        self.setMinimumSize(900, 600)
+        self.resize(1100, 720)
         self.selected_file: str | None = None
-
-        # Wire up buttons to methods
-        self.selectButton.clicked.connect(self.select_pdf)
-        self.analyzeButton.clicked.connect(self.start_analysis)
-
-        # Thread references kept alive during analysis
         self._thread: QThread | None = None
         self._worker: AnalysisWorker | None = None
+
+        self._build_ui()
+
+    def _build_ui(self):
+        central = QWidget()
+        self.setCentralWidget(central)
+
+        root = QHBoxLayout(central)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        root.addWidget(self._build_sidebar())
+        root.addWidget(self._build_main())
+
+        self.statusBar().setObjectName("statusBar")
+        self.statusBar().showMessage("● Ready · No file selected")
+
+    # ── Sidebar ────────────────────────────────────────────────────────────────
+
+    def _build_sidebar(self) -> QWidget:
+        sidebar = QWidget()
+        sidebar.setObjectName("sidebar")
+        sidebar.setFixedWidth(260)
+
+        layout = QVBoxLayout(sidebar)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Logo area
+        logo_widget = QWidget()
+        logo_layout = QVBoxLayout(logo_widget)
+        logo_layout.setContentsMargins(24, 28, 24, 20)
+        logo_layout.setSpacing(4)
+
+        icon = QLabel("⬡")
+        icon.setObjectName("appIcon")
+        name = QLabel("DocumentScanner")
+        name.setObjectName("appName")
+        tagline = QLabel("AI-Powered Resume Analysis")
+        tagline.setObjectName("appTagline")
+
+        logo_layout.addWidget(icon)
+        logo_layout.addWidget(name)
+        logo_layout.addWidget(tagline)
+        layout.addWidget(logo_widget)
+        layout.addWidget(_divider())
+
+        # File section
+        file_widget = QWidget()
+        file_layout = QVBoxLayout(file_widget)
+        file_layout.setContentsMargins(20, 20, 20, 12)
+        file_layout.setSpacing(10)
+
+        doc_label = QLabel("DOCUMENT")
+        doc_label.setObjectName("sectionLabel")
+
+        self.selectButton = QPushButton("  Select PDF")
+        self.selectButton.setObjectName("selectButton")
+        self.selectButton.setMinimumHeight(40)
+        self.selectButton.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.selectButton.clicked.connect(self.select_pdf)
+
+        # File info box
+        file_info = QWidget()
+        file_info.setObjectName("fileInfoBox")
+        file_info_layout = QVBoxLayout(file_info)
+        file_info_layout.setContentsMargins(12, 10, 12, 10)
+        file_info_layout.setSpacing(3)
+
+        file_header = QLabel("SELECTED FILE")
+        file_header.setObjectName("fileLabelHeader")
+        self.fileLabel = QLabel("No file selected")
+        self.fileLabel.setObjectName("fileLabel")
+        self.fileLabel.setWordWrap(True)
+
+        file_info_layout.addWidget(file_header)
+        file_info_layout.addWidget(self.fileLabel)
+
+        file_layout.addWidget(doc_label)
+        file_layout.addWidget(self.selectButton)
+        file_layout.addWidget(file_info)
+        layout.addWidget(file_widget)
+        layout.addWidget(_divider())
+
+        # Analyze section
+        analyze_widget = QWidget()
+        analyze_layout = QVBoxLayout(analyze_widget)
+        analyze_layout.setContentsMargins(20, 16, 20, 16)
+        analyze_layout.setSpacing(10)
+
+        analyze_label = QLabel("ANALYSIS")
+        analyze_label.setObjectName("analyzeLabel")
+
+        self.analyzeButton = QPushButton("  Run Analysis")
+        self.analyzeButton.setObjectName("analyzeButton")
+        self.analyzeButton.setMinimumHeight(40)
+        self.analyzeButton.setEnabled(False)
+        self.analyzeButton.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.analyzeButton.clicked.connect(self.start_analysis)
+
+        analyze_layout.addWidget(analyze_label)
+        analyze_layout.addWidget(self.analyzeButton)
+        layout.addWidget(analyze_widget)
+
+        # Spacer
+        layout.addStretch()
+        layout.addWidget(_divider())
+
+        # Footer
+        footer = QWidget()
+        footer_layout = QVBoxLayout(footer)
+        footer_layout.setContentsMargins(20, 12, 20, 16)
+        version = QLabel("v1.0.0  ·  MIT License")
+        version.setObjectName("versionLabel")
+        footer_layout.addWidget(version)
+        layout.addWidget(footer)
+
+        return sidebar
+
+    # ── Main content ───────────────────────────────────────────────────────────
+
+    def _build_main(self) -> QWidget:
+        main = QWidget()
+        layout = QVBoxLayout(main)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Top bar
+        top_bar = QWidget()
+        top_bar.setObjectName("topBar")
+        top_bar.setFixedHeight(52)
+        top_layout = QHBoxLayout(top_bar)
+        top_layout.setContentsMargins(28, 0, 20, 0)
+
+        page_title = QLabel("Analysis Results")
+        page_title.setObjectName("pageTitle")
+
+        self.statusDot = QLabel("● Ready")
+        self.statusDot.setObjectName("statusDot")
+
+        top_layout.addWidget(page_title)
+        top_layout.addStretch()
+        top_layout.addWidget(self.statusDot)
+
+        # Results area
+        self.resultsTextEdit = QTextEdit()
+        self.resultsTextEdit.setObjectName("resultsTextEdit")
+        self.resultsTextEdit.setReadOnly(True)
+        self.resultsTextEdit.setPlaceholderText(
+            "Select a PDF document and click Run Analysis to begin..."
+        )
+        self.resultsTextEdit.setFrameShape(QFrame.Shape.NoFrame)
+
+        layout.addWidget(top_bar)
+        layout.addWidget(self.resultsTextEdit)
+
+        return main
 
     # ── File selection ─────────────────────────────────────────────────────────
 
     def select_pdf(self):
-        """Open file explorer filtered to PDF files, then validate the selection."""
         file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select a PDF Document",
-            "",                                         # start in last-used dir
+            self, "Select a PDF Document", "",
             "PDF Files (*.pdf);;All Files (*)"
         )
-
         if not file_path:
-            return  # user cancelled the dialog
+            return
 
-        # ── Layer 1: extension + magic number check ────────────────────────────
         if not is_pdf_file(file_path):
             QMessageBox.critical(
-                self,
-                "Invalid File",
-                f"The selected file is not a valid PDF:\n\n{os.path.basename(file_path)}\n\n"
-                "Please choose a file that is a genuine PDF document."
+                self, "Invalid File",
+                f"Not a valid PDF:\n\n{os.path.basename(file_path)}\n\n"
+                "Please select a genuine PDF document."
             )
             logging.warning(f"Invalid PDF rejected: {file_path}")
             return
 
-        # ── Layer 2: quick malicious content pre-check ─────────────────────────
         suspicious = scan_pdf_for_malicious_content(file_path)
         found = {k: v for k, v in suspicious.items() if v > 0}
 
         if found:
             details = "\n".join(f"  {k}: {v} occurrence(s)" for k, v in found.items())
             reply = QMessageBox.warning(
-                self,
-                "⚠️ Suspicious File Detected",
-                f"This PDF contains potentially dangerous elements:\n\n{details}\n\n"
-                "It may contain JavaScript, embedded files, or auto-run actions.\n\n"
-                "Do you still want to proceed?",
+                self, "Suspicious File Detected",
+                f"Potentially dangerous elements found:\n\n{details}\n\n"
+                "This file may contain JavaScript or auto-run actions.\n\n"
+                "Continue anyway?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No       # default to No (safer choice)
+                QMessageBox.StandardButton.No
             )
             if reply != QMessageBox.StandardButton.Yes:
-                self.statusbar.showMessage("File rejected — suspicious content.")
+                self.statusBar().showMessage("File rejected.")
                 return
 
-        # ── File accepted — update UI ──────────────────────────────────────────
         self.selected_file = file_path
         self.fileLabel.setText(os.path.basename(file_path))
         self.analyzeButton.setEnabled(True)
         self.resultsTextEdit.clear()
-        self.statusbar.showMessage(f"Ready: {os.path.basename(file_path)}")
+        self.statusDot.setText("● Ready")
+        self.statusBar().showMessage(f"Loaded: {os.path.basename(file_path)}")
         logging.info(f"File selected: {file_path}")
 
     # ── Analysis ───────────────────────────────────────────────────────────────
 
     def start_analysis(self):
-        """Kick off the full analysis pipeline in a background thread."""
         if not self.selected_file:
             return
 
-        # Lock the UI while the worker runs
         self.analyzeButton.setEnabled(False)
         self.selectButton.setEnabled(False)
         self.resultsTextEdit.clear()
-        self.statusbar.showMessage("Analyzing — please wait…")
+        self.statusDot.setText("● Running")
+        self.statusBar().showMessage("Analyzing…")
 
-        # Create worker and move it to a background thread
         self._thread = QThread()
         self._worker = AnalysisWorker(self.selected_file)
         self._worker.moveToThread(self._thread)
 
-        # Connect worker signals to GUI slots
         self._thread.started.connect(self._worker.run)
-        self._worker.progress.connect(self.append_normal)
-        self._worker.warning.connect(self.append_warning)
-        self._worker.error.connect(self.append_error)
-        self._worker.finished.connect(self.on_analysis_finished)
+        self._worker.result.connect(self.resultsTextEdit.setHtml)
+        self._worker.status.connect(self.statusBar().showMessage)
+        self._worker.status.connect(self._update_dot)
+        self._worker.finished.connect(self._on_finished)
         self._worker.finished.connect(self._thread.quit)
         self._worker.finished.connect(self._worker.deleteLater)
         self._thread.finished.connect(self._thread.deleteLater)
 
         self._thread.start()
 
-    def on_analysis_finished(self):
-        """Re-enable the UI after analysis completes."""
+    def _update_dot(self, status: str):
+        """Sync the top-bar dot label with the status bar message."""
+        if "Scanning" in status:
+            self.statusDot.setText("● Scanning")
+        elif "Extracting" in status:
+            self.statusDot.setText("● Extracting")
+        elif "Ready" in status:
+            self.statusDot.setText("● Ready")
+
+    def _on_finished(self):
         self.analyzeButton.setEnabled(True)
         self.selectButton.setEnabled(True)
-        self.statusbar.showMessage("Analysis complete.")
-
-    # ── Output helpers ─────────────────────────────────────────────────────────
-
-    def append_normal(self, text: str):
-        """Append a plain text line to the results box."""
-        self.resultsTextEdit.append(text)
-
-    def append_warning(self, text: str):
-        """Append an orange-coloured warning line."""
-        self.resultsTextEdit.append(
-            f'<span style="color:#e67e22;">{text}</span>'
-        )
-
-    def append_error(self, text: str):
-        """Append a bold red error line."""
-        self.resultsTextEdit.append(
-            f'<span style="color:#e74c3c;font-weight:bold;">{text}</span>'
-        )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -350,6 +631,9 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
+    app.setStyleSheet(APP_STYLE)
+
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
