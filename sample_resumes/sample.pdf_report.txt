@@ -1,9 +1,10 @@
 DocumentScannerAI Report
-Generated: 2026-02-18 17:21:27
-Analyzed File: C:\Users\jwcam\Desktop\Projects\DocumentScannerAI\sample_resumes\sample.pdf
+Generated: 2026-02-19 17:38:53
+Analyzed File: C:/Users/jwcam/Desktop/Projects/DocumentScannerAI/sample_resumes/sample.pdf
 
 --- Security Scan ---
-No suspicious elements found. File is clean.
+Suspicious PDF Elements Detected:
+  /AA: 3
 
 --- Keyword Analysis ---
 Word count: 587
