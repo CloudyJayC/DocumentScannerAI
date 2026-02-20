@@ -1,46 +1,35 @@
 # DocumentScannerAI
 
-A modular, AI-powered PDF document scanner and analyzer with a graphical user interface built on PyQt6.
+A modular, AI-powered PDF document scanner and resume analyzer with a graphical user interface built on PyQt6.
 
 ## Features
 
 - GUI interface — select and analyze PDFs without touching the terminal
 - Two-layer PDF validation — extension check + magic number (`%PDF-`) verification
 - Malicious content detection — scans for embedded JavaScript, auto-run actions, launch commands, and embedded files before analysis begins
-- Text extraction via `pdfplumber`
-- Keyword frequency analysis with stopword filtering
-- AI-powered named entity recognition using spaCy (people, organizations, locations, dates, and more)
-- Automatic text report generation saved alongside the analyzed file
+- Clean text extraction via `pdfplumber` with resume-specific formatting (section headers detected, hyphenated line breaks rejoined, junk lines removed)
+- AI-powered resume analysis — strengths, weaknesses, skills, and recommendations *(coming in next patch)*
 - Full logging to `scanner.log`
 - Terminal mode still available via `main.py`
 
 ## Project Structure
 
 ```
-DOCUMENTSCANNERAI/
-├── analysis/
-│   ├── ai_analysis.py          — spaCy NLP entity extraction and summarization
-│   └── keyword_analysis.py     — keyword frequency analysis
+DocumentScannerAI/
+├── analysis/               — AI analysis modules (next patch)
 ├── file_handlers/
-│   └── pdf_handler.py          — PDF text extraction using pdfplumber
+│   └── pdf_handler.py      — PDF text extraction and cleaning
 ├── reports/
-│   └── report_generator.py     — generates and saves text analysis reports
+│   └── report_generator.py — text report generation
 ├── security/
-│   ├── utils/                  — internal security utilities
-│   ├── error_handling.py       — logging and error/warning helpers
-│   └── validation.py           — PDF validation and pdfid stub scanner
+│   └── error_handling.py   — logging and error helpers (terminal mode)
 ├── tests/
-│   ├── test_all.py
-│   ├── test_keyword_analysis.py
-│   ├── test_pdf_handler.py
-│   └── test_pdf_handler_manual.py
-├── sample_resumes/             — sample PDFs for testing
-├── config.py                   — shared config (allowed extensions, etc.)
-├── gui_main.py                 — GUI entry point (PyQt6) ← run this
-├── main.py                     — terminal entry point (CLI)
-├── Main.ui                     — Qt Designer UI layout file
+│   └── test_all.py         — unit tests
+├── sample_resumes/         — sample PDFs for testing
+├── config.py               — shared configuration
+├── gui_main.py             — GUI entry point (PyQt6) ← run this
+├── main.py                 — terminal entry point (CLI)
 ├── requirements.txt
-├── scanner.log                 — auto-generated runtime log
 └── README.md
 ```
 
@@ -57,14 +46,13 @@ DOCUMENTSCANNERAI/
    # Windows
    .venv\Scripts\activate
 
-   # macOS/Linux
+   # macOS / Linux
    source .venv/bin/activate
    ```
 
 4. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
-   python -m spacy download en_core_web_sm
    ```
 
 ## Usage
@@ -73,13 +61,13 @@ DOCUMENTSCANNERAI/
 ```bash
 python gui_main.py
 ```
-Click **Select PDF Document** to open a file picker, then click **Analyze Document**. Results stream into the output panel and a report is saved automatically.
+Click **Select PDF** to open a file picker — the file is validated and scanned for malicious content immediately on selection. Click **Run Analysis** to extract and display the cleaned text.
 
 ### Terminal
 ```bash
 python main.py
 ```
-You will be prompted to enter the path to a PDF file. Results are printed to the console and a report is saved.
+You will be prompted to enter the path to a PDF file.
 
 ## Running Tests
 ```bash
@@ -92,8 +80,16 @@ python -m pytest tests/
 |---|---|
 | `PyQt6` | GUI framework |
 | `pdfplumber` | PDF text extraction |
-| `spacy` + `en_core_web_sm` | Named entity recognition |
 | `colorama` | Colored terminal output (terminal mode) |
+| `anthropic` | AI resume analysis (next patch) |
+
+## Roadmap
+
+- [x] PDF validation and malicious content detection
+- [x] Clean text extraction with resume formatting
+- [x] Professional dark-theme GUI
+- [ ] AI-powered resume strengths, weaknesses, and skills analysis
+- [ ] Export analysis to PDF report
 
 ## License
 
