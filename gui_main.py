@@ -52,17 +52,17 @@ QLabel#appName {
     font-weight: 700;
 }
 QLabel#appTagline {
-    color: #374151;
+    color: #4a5568;
     font-size: 10px;
 }
 QLabel#sectionLabel, QLabel#analyzeLabel {
-    color: #2d3748;
+    color: #4a5568;
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 2px;
 }
 QLabel#fileLabelHeader {
-    color: #2d3f5a;
+    color: #4a6080;
     font-size: 8px;
     font-weight: 700;
     letter-spacing: 2px;
@@ -81,13 +81,18 @@ QLabel#pageTitle {
     font-weight: 600;
 }
 QLabel#statusDot {
-    color: #374151;
+    color: #64748b;
     font-size: 11px;
 }
 
+
+QWidget#logoArea, QWidget#fileSection, QWidget#analyzeSection,
+QWidget#sidebarFooter, QWidget#mainContent {
+    border: none;
+}
 QWidget#fileInfoBox {
     background-color: #0d1120;
-    border: 1px solid #1e2433;
+    border: 1px solid #243044;
     border-radius: 6px;
 }
 
@@ -155,6 +160,9 @@ QTextEdit#resultsTextEdit {
     font-size: 12px;
     selection-background-color: #1e3a5f;
 }
+QTextEdit#resultsTextEdit[placeholderText] {
+    color: #374151;
+}
 
 QScrollBar:vertical {
     background: #0a0d14;
@@ -175,12 +183,21 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
 
 QStatusBar {
     background-color: #080b11;
-    color: #374151;
+    color: #64748b;
     font-size: 10px;
-    border-top: 1px solid #111825;
+    border-top: 1px solid #1e2433;
     padding: 0 12px;
 }
 
+
+QToolTip {
+    background-color: #1a2035;
+    color: #cbd5e1;
+    border: 1px solid #2a3654;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
 QMessageBox {
     background-color: #0f1117;
     color: #e2e8f0;
@@ -390,7 +407,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("DocumentScannerAI")
-        self.setMinimumSize(900, 600)
+        self.setMinimumSize(960, 640)
         self.resize(1100, 720)
         self.selected_file: str | None = None
         self._last_scan: dict = {}
@@ -426,6 +443,7 @@ class MainWindow(QMainWindow):
 
         # Logo area
         logo_widget = QWidget()
+        logo_widget.setObjectName("logoArea")
         logo_layout = QVBoxLayout(logo_widget)
         logo_layout.setContentsMargins(24, 28, 24, 20)
         logo_layout.setSpacing(4)
@@ -445,6 +463,7 @@ class MainWindow(QMainWindow):
 
         # File section
         file_widget = QWidget()
+        file_widget.setObjectName("fileSection")
         file_layout = QVBoxLayout(file_widget)
         file_layout.setContentsMargins(20, 20, 20, 12)
         file_layout.setSpacing(10)
@@ -452,10 +471,11 @@ class MainWindow(QMainWindow):
         doc_label = QLabel("DOCUMENT")
         doc_label.setObjectName("sectionLabel")
 
-        self.selectButton = QPushButton("  Select PDF")
+        self.selectButton = QPushButton("  Select PDF  ")
         self.selectButton.setObjectName("selectButton")
         self.selectButton.setMinimumHeight(40)
         self.selectButton.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.selectButton.setToolTip("Open a PDF file to analyse")
         self.selectButton.clicked.connect(self.select_pdf)
 
         # File info box
@@ -482,6 +502,7 @@ class MainWindow(QMainWindow):
 
         # Analyze section
         analyze_widget = QWidget()
+        analyze_widget.setObjectName("analyzeSection")
         analyze_layout = QVBoxLayout(analyze_widget)
         analyze_layout.setContentsMargins(20, 16, 20, 16)
         analyze_layout.setSpacing(10)
@@ -489,11 +510,12 @@ class MainWindow(QMainWindow):
         analyze_label = QLabel("ANALYSIS")
         analyze_label.setObjectName("analyzeLabel")
 
-        self.analyzeButton = QPushButton("  Run Analysis")
+        self.analyzeButton = QPushButton("  Run Analysis  ")
         self.analyzeButton.setObjectName("analyzeButton")
         self.analyzeButton.setMinimumHeight(40)
         self.analyzeButton.setEnabled(False)
         self.analyzeButton.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.analyzeButton.setToolTip("Run security scan and text extraction")
         self.analyzeButton.clicked.connect(self.start_analysis)
 
         analyze_layout.addWidget(analyze_label)
@@ -506,6 +528,7 @@ class MainWindow(QMainWindow):
 
         # Footer
         footer = QWidget()
+        footer.setObjectName("sidebarFooter")
         footer_layout = QVBoxLayout(footer)
         footer_layout.setContentsMargins(20, 12, 20, 16)
         version = QLabel("v1.0.0  ·  MIT License")
@@ -519,6 +542,7 @@ class MainWindow(QMainWindow):
 
     def _build_main(self) -> QWidget:
         main = QWidget()
+        main.setObjectName("mainContent")
         layout = QVBoxLayout(main)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
