@@ -1,7 +1,14 @@
 """
 gui_main.py — DocumentScannerAI GUI Entry Point (PyQt6)
 ========================================================
-UI built entirely in Python — no .ui file required.
+
+A professional dark-themed GUI for PDF scanning and AI-powered resume analysis.
+Features file validation, malicious content detection, text extraction, and
+structured AI analysis using a local Ollama instance (llama3.1:8b model).
+
+UI built entirely in Python (no .ui files) with custom stylesheets for a
+modern, accessible dark theme.
+
 Run with: python gui_main.py
 """
 
@@ -16,7 +23,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QThread, pyqtSignal, QObject, Qt
 from PyQt6.QtGui import QFont
 
+# Local module imports
 from file_handlers.pdf_handler import extract_text_from_pdf
+from analysis.ai_analysis import analyse_resume
 
 logging.basicConfig(
     filename="scanner.log",
@@ -224,6 +233,14 @@ ALLOWED_EXTENSIONS = {".pdf"}
 
 
 def is_pdf_file(file_path: str) -> bool:
+    """Validate that a file is a genuine PDF using both extension and magic number.
+    
+    Args:
+        file_path: Path to the file to validate
+    
+    Returns:
+        True if file has .pdf extension and starts with %PDF magic number, else False
+    """
     _, ext = os.path.splitext(file_path)
     if ext.lower() not in ALLOWED_EXTENSIONS:
         return False
@@ -236,13 +253,33 @@ def is_pdf_file(file_path: str) -> bool:
 
 
 def scan_pdf_for_malicious_content(file_path: str) -> dict:
+    """Scan PDF binary content for suspicious PDF features that may indicate malware.
+    
+    Checks for embedded JavaScript, auto-run actions, launched programs, 
+    embedded files, forms, and rich media objects — common vectors for 
+    PDF-based attacks.
+    
+    Args:
+        file_path: Path to the PDF file to scan
+    
+    Returns:
+        Dictionary mapping suspicious PDF keywords to occurrence counts
+    """
+    # Common PDF features used in malicious documents
     suspicious_keywords = {
-        "/JS": 0, "/JavaScript": 0, "/AA": 0, "/OpenAction": 0,
-        "/Launch": 0, "/EmbeddedFile": 0, "/AcroForm": 0, "/RichMedia": 0,
+        "/JS": 0,              # JavaScript in PDF
+        "/JavaScript": 0,      # JavaScript object
+        "/AA": 0,              # Auto-Action (triggers on open)
+        "/OpenAction": 0,      # Action on document open
+        "/Launch": 0,          # Launch external program
+        "/EmbeddedFile": 0,    # Embedded files (can hide malware)
+        "/AcroForm": 0,        # Interactive forms
+        "/RichMedia": 0,       # Embedded media (Flash, etc.)
     }
     try:
         with open(file_path, "rb") as f:
             content = f.read()
+        # Count occurrences of each malicious marker
         for keyword in suspicious_keywords:
             suspicious_keywords[keyword] = content.count(keyword.encode())
     except Exception as e:
@@ -283,6 +320,56 @@ def _coming_soon(label: str) -> str:
         f'<p style="color:#1f2d42; font-style:italic; font-size:11px; margin:6px 0 0 2px;">'
         f'[ {label} — coming in next patch ]</p>'
     )
+
+
+def _render_ai_analysis(analysis: dict) -> str:
+    """Renders the structured AI analysis dict as formatted HTML."""
+    html = ""
+
+    # Overall impression
+    impression = analysis.get("overall_impression", "")
+    if impression:
+        html += (
+            f'<p style="color:#e2e8f0; font-size:12px; line-height:1.7; '
+            f'margin:0 0 16px 2px;">{impression}</p>'
+        )
+
+    def _subsection(title: str, color: str, items: list) -> str:
+        if not items:
+            return ""
+        out = (
+            f'<p style="color:{color}; font-size:9px; font-weight:700; '
+            f'letter-spacing:2px; margin:14px 0 6px 2px;">{title}</p>'
+        )
+        for item in items:
+            out += (
+                f'<p style="color:#94a3b8; font-size:11.5px; line-height:1.6; '
+                f'margin:3px 0 3px 10px;">▸ &nbsp;{item}</p>'
+            )
+        return out
+
+    html += _subsection(
+        "STRENGTHS",
+        "#6ee7b7",
+        analysis.get("strengths", [])
+    )
+    html += _subsection(
+        "AREAS TO IMPROVE",
+        "#f87171",
+        analysis.get("weaknesses", [])
+    )
+    html += _subsection(
+        "KEY SKILLS DETECTED",
+        "#7dd3fc",
+        analysis.get("key_skills", [])
+    )
+    html += _subsection(
+        "RECOMMENDATIONS",
+        "#fbbf24",
+        analysis.get("recommendations", [])
+    )
+
+    return html
 
 
 def _text_block(text: str) -> str:
@@ -357,27 +444,35 @@ class AnalysisWorker(QObject):
                 html += _ok_line(f"✓ &nbsp; No threats detected &nbsp;·&nbsp; {name} is clean")
                 logging.info(f"Clean file: {fp}")
 
-            # Extraction
+            # Extraction — silent, feeds into AI
             self.status.emit("● Extracting · Reading PDF…")
-            html += _section_header("Extracted Text", "#c084fc", "📄")
             text = extract_text_from_pdf(fp)
 
             if not text:
+                html += _section_header("Extracted Text", "#c084fc", "📄")
                 html += _error_line("✗ &nbsp; No text could be extracted from this PDF.")
                 html += _error_line("&nbsp;&nbsp;&nbsp;&nbsp;The file may be image-only or encrypted.")
                 logging.error(f"No text extracted: {fp}")
             else:
                 word_count = len(text.split())
-                html += (
-                    f'<p style="color:#374151; font-size:10px; margin:0 0 8px 2px; '
-                    f'letter-spacing:0.5px;">{word_count:,} words extracted</p>'
-                )
-                html += _text_block(text)
-                logging.info(f"Text extracted: {fp}")
+                logging.info(f"Text extracted ({word_count} words): {fp}")
 
-            # AI placeholder
-            html += _section_header("AI Resume Analysis", "#f9a825", "🤖")
-            html += _coming_soon("AI-powered strengths, weaknesses, skills and recommendations")
+                # AI Resume Analysis
+                self.status.emit("● Analysing · Running AI resume review…")
+                html += _section_header("AI Resume Analysis", "#f9a825", "🤖")
+                html += (
+                    f'<p style="color:#4a5568; font-size:10px; margin:0 0 12px 2px; '
+                    f'letter-spacing:0.5px;">📄 &nbsp; {word_count:,} words extracted &nbsp;·&nbsp; '
+                    f'Analysed with llama3.1:8b</p>'
+                )
+
+                try:
+                    analysis = analyse_resume(text)
+                    html += _render_ai_analysis(analysis)
+                    logging.info(f"AI analysis complete: {fp}")
+                except RuntimeError as ai_err:
+                    html += _error_line(f"✗ &nbsp; AI analysis failed: {ai_err}")
+                    logging.error(f"AI analysis error for {fp}: {ai_err}")
 
         except RuntimeError as e:
             html += _error_line(f"✗ &nbsp; Could not read PDF: {e}")
