@@ -1,53 +1,271 @@
 # DocumentScannerAI
 
-A modular, AI-powered PDF scanner and resume analyzer with a professional graphical user interface built on PyQt6 and powered by a local Ollama LLM.
+[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-## Features
+A modular, AI-powered PDF scanner and resume analyzer with a professional graphical user interface built on **PyQt6** and powered by a local **Ollama LLM** (llama3.1:8b).
 
-- **GUI Interface** — Select and analyze PDFs with a dark-themed PyQt6 interface (no terminal required)
-- **Two-Layer PDF Validation** — Extension check + magic number (`%PDF-`) verification to ensure genuine PDF files
-- **Malicious Content Detection** — Scans for embedded JavaScript, auto-run actions, launch commands, and embedded files before analysis begins
-- **Clean Text Extraction** — Uses `pdfplumber` with resume-optimized formatting:
-  - Detects and adds spacing before section headers
-  - Fixes hyphenated line breaks (rejoins split words)
-  - Removes junk lines, symbols, and page numbers
-  - Collapses excessive whitespace
-- **Local AI Analysis** — Uses llama3.1:8b running on your machine (via Ollama) for private, fast resume analysis
-  - Structured analysis: overall impression, strengths, weaknesses, key skills, recommendations
-  - No data sent to external servers
-  - Graceful fallback if AI returns invalid JSON
-  - Automatic brace escaping to handle special characters in resumes
-- **Full Logging** — All operations logged to `scanner.log` for debugging and audit trails (auto-ignored by git)
-- **Professional Dark Theme** — Accessible, modern UI with custom PyQt6 stylesheets
+## 🎯 Features
 
-## Project Structure
+- **GUI Interface** — Dark-themed PyQt6 interface for seamless PDF analysis (no terminal required)
+- **Robust PDF Validation** — Dual-layer verification (extension check + magic numbers) to ensure genuine PDF files
+- **Security Scanning** — Detects malicious content before processing:
+  - Embedded JavaScript detection
+  - Auto-run action detection
+  - Launch command detection
+  - Embedded files detection
+- **Intelligent Text Extraction** — Uses `pdfplumber` with resume-specific optimizations:
+  - Intelligent spacing detection for section headers
+  - Automatic hyphenated line break fixes
+  - Junk line and symbol removal
+  - Excessive whitespace collapsing
+- **Local AI Analysis** — Uses `llama3.1:8b` running locally (via Ollama):
+  - Structured resume analysis (impression, strengths, weaknesses, skills, recommendations)
+  - Privacy-first: no data sent to external servers
+  - Graceful fallback for invalid JSON responses
+  - Automatic character escaping for special content
+- **Comprehensive Logging** — Full audit trail in `scanner.log` (auto-excluded from git)
+- **Accessible Design** — Modern dark theme with custom PyQt6 stylesheets
+
+## 📋 Requirements
+
+- **Python 3.8** or higher
+- **Ollama** — Local LLM platform
+  - Download from https://ollama.com
+  - Requires `llama3.1:8b` model
+
+## 🚀 Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/DocumentScannerAI.git
+cd DocumentScannerAI
+```
+
+### 2. Create Virtual Environment (Recommended)
+
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Ensure Ollama is Running
+
+```bash
+# In a separate terminal, start Ollama
+ollama serve
+
+# In another terminal, pull the model
+ollama pull llama3.1:8b
+```
+
+### 5. Run the Application
+
+```bash
+python gui_main.py
+```
+
+## 📁 Project Structure
 
 ```
 DocumentScannerAI/
-├── analysis/
+├── .github/                      # GitHub templates and CI/CD
+│   ├── ISSUE_TEMPLATE/
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   └── workflows/
+├── analysis/                     # AI analysis module
 │   ├── __init__.py
-│   └── ai_analysis.py         — Ollama LLM interface for resume analysis
-├── file_handlers/
+│   └── ai_analysis.py           # Ollama LLM interface
+├── file_handlers/                # PDF handling module
 │   ├── __init__.py
-│   └── pdf_handler.py         — PDF extraction and text cleaning
-├── tests/
+│   └── pdf_handler.py           # PDF extraction & validation
+├── tests/                        # Test suite
 │   ├── __init__.py
-│   ├── test_all.py            — Unit tests for PDF handler and validation
+│   ├── test_all.py
+│   ├── test_full_pipeline.py
+│   ├── test_ollama_response.py
 │   └── test_pdf_handler_manual.py
-├── sample_resumes/            — Sample PDFs for testing
-├── config.py                  — Centralized configuration and constants
-├── gui_main.py                — Main GUI entry point (PyQt6) ← RUN THIS
-├── requirements.txt           — Python dependencies
-├── LICENSE
-└── README.md
+├── sample_resumes/               # Sample PDFs for testing
+│   └── sample.pdf
+├── config.py                     # Configuration & constants
+├── gui_main.py                   # Main GUI entry point ← RUN THIS
+├── setup.py                      # Package setup configuration
+├── requirements.txt              # Python dependencies
+├── LICENSE                       # MIT License
+├── README.md                     # This file
+└── CONTRIBUTING.md               # Contribution guidelines
 ```
 
-## Requirements
+## 🛠 Usage
 
-- **Python 3.8+**
-- **Ollama** — Local LLM platform (https://ollama.com)
-  - Download and install from https://ollama.com
-  - The llama3.1:8b model must be pulled (see Setup below)
+### GUI Mode (Recommended)
+
+```bash
+python gui_main.py
+```
+
+1. Launch the application
+2. Click "Select PDF" to choose a resume
+3. The application automatically:
+   - Validates the PDF integrity
+   - Scans for malicious content
+   - Extracts and cleans text
+   - Analyzes with AI
+4. View results in the analysis panel
+
+### Command Line Mode (Testing)
+
+```bash
+python -m pytest tests/
+```
+
+## ⚙️ Configuration
+
+Edit `config.py` to customize:
+
+```python
+OLLAMA_HOST = "localhost"           # Ollama server address
+OLLAMA_PORT = 11434                 # Ollama server port
+OLLAMA_MODEL = "llama3.1:8b"        # Model to use
+AI_TEMPERATURE = 0.3                # Model creativity (0.0-1.0)
+AI_TOP_P = 0.9                      # Nucleus sampling parameter
+RESUME_MAX_WORDS = 3000             # Max words to send to AI
+```
+
+## 🔒 Security Features
+
+### PDF Validation
+- ✅ Extension verification (`.pdf` only)
+- ✅ Magic number validation (`%PDF-` header)
+- ✅ Malicious content scanning
+
+### Data Privacy
+- ✅ All processing runs locally
+- ✅ No telemetry or data collection
+- ✅ Can run completely offline (after model download)
+
+## 📊 Analysis Output
+
+The AI analyzer returns structured JSON:
+
+```json
+{
+  "overall_impression": "Strong technical background with clear communication skills",
+  "strengths": ["Experience with multiple languages", "Good project portfolio"],
+  "weaknesses": ["Limited management experience"],
+  "key_skills": ["Python", "JavaScript", "React"],
+  "recommendations": ["Consider adding metrics to achievements", "Expand leadership examples"]
+}
+```
+
+## 🧪 Testing
+
+Run the test suite:
+
+```bash
+# Run all tests
+python -m pytest tests/
+
+# Run specific test
+python -m pytest tests/test_full_pipeline.py
+
+# Run with verbose output
+python -m pytest tests/ -v
+```
+
+Test files included:
+- `test_all.py` — Unit tests for PDF handler and validation
+- `test_full_pipeline.py` — End-to-end pipeline testing
+- `test_ollama_response.py` — Ollama API response testing
+- `test_pdf_handler_manual.py` — Manual PDF handler testing
+
+## 🐛 Troubleshooting
+
+### Ollama Connection Error
+```
+Error: Connection refused [localhost:11434]
+```
+**Solution:** Ensure Ollama is running (`ollama serve`) and the model is installed (`ollama pull llama3.1:8b`)
+
+### Invalid JSON Response from AI
+```
+Warning: Failed to parse AI response JSON
+```
+**Solution:** The app has graceful fallback. Check `scanner.log` for details. Try adjusting `AI_TEMPERATURE` in `config.py`
+
+### GUI Not Launching
+```
+ModuleNotFoundError: No module named 'PyQt6'
+```
+**Solution:** Install dependencies: `pip install -r requirements.txt`
+
+### PDF Not Found
+- Verify PDF exists at the selected path
+- Check file permissions
+- Ensure PDF is not corrupted
+
+## 📝 Logging
+
+All operations are logged to `scanner.log`:
+
+```bash
+# View recent logs
+tail -f scanner.log
+
+# Search for errors
+grep ERROR scanner.log
+```
+
+Log levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Quick Contribution Steps
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Make your changes
+4. Write tests for new functionality
+5. Submit a pull request
+
+## 📜 License
+
+This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
+
+## 👨‍💻 Author
+
+Your Name — [@yourhandle](https://github.com/yourusername)
+
+## 🙏 Acknowledgments
+
+- [Ollama](https://ollama.com) — Local LLM platform
+- [PyQt6](https://www.riverbankcomputing.com/software/pyqt/) — GUI framework
+- [pdfplumber](https://github.com/jamesturk/pdfplumber) — PDF text extraction
+- [llama3.1](https://www.meta.com/research/llama/) — AI model
+
+## 📞 Support
+
+- 📖 [Documentation](README.md)
+- 🐛 [Report Issues](https://github.com/yourusername/DocumentScannerAI/issues)
+- 💬 [Discussions](https://github.com/yourusername/DocumentScannerAI/discussions)
+
+---
+
+**⭐ If you find this useful, please consider giving it a star!**
 
 ## Setup
 
