@@ -15,6 +15,7 @@ Run with: python gui_main.py
 import sys
 import os
 import logging
+from datetime import datetime
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QTextEdit, QFrame, QFileDialog, QMessageBox,
@@ -22,6 +23,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import QThread, pyqtSignal, QObject, Qt
 from PyQt6.QtGui import QFont
+from fpdf import FPDF
 
 # Local module imports
 from file_handlers.pdf_handler import extract_text_from_pdf
@@ -155,6 +157,30 @@ QPushButton#analyzeButton:pressed {
     background-color: #163028;
 }
 QPushButton#analyzeButton:disabled {
+    background-color: #111820;
+    color: #2d3748;
+    border-color: #1a2030;
+}
+
+QPushButton#exportButton {
+    background-color: #1a2a3a;
+    color: #7dd3fc;
+    border: 1px solid #2a4a6a;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+}
+QPushButton#exportButton:hover {
+    background-color: #1e3a50;
+    border-color: #3b82f6;
+    color: #bfdbfe;
+}
+QPushButton#exportButton:pressed {
+    background-color: #162840;
+}
+QPushButton#exportButton:disabled {
     background-color: #111820;
     color: #2d3748;
     border-color: #1a2030;
@@ -418,6 +444,7 @@ def _text_block(text: str) -> str:
 class AnalysisWorker(QObject):
     result   = pyqtSignal(str)
     status   = pyqtSignal(str)
+    analysis_ready = pyqtSignal(dict)
     finished = pyqtSignal()
 
     def __init__(self, file_path: str, suspicious: dict):
@@ -481,6 +508,7 @@ class AnalysisWorker(QObject):
                 try:
                     analysis = analyse_resume(text)
                     html += _render_ai_analysis(analysis)
+                    self.analysis_ready.emit(analysis)
                     logging.info(f"AI analysis complete: {fp}")
                 except RuntimeError as ai_err:
                     html += _error_line(f"✗ &nbsp; AI analysis failed: {ai_err}")
@@ -518,6 +546,7 @@ class MainWindow(QMainWindow):
         self.resize(1100, 720)
         self.selected_file: str | None = None
         self._last_scan: dict = {}
+        self._last_analysis: dict = {}
         self._thread: QThread | None = None
         self._worker: AnalysisWorker | None = None
 
@@ -625,8 +654,17 @@ class MainWindow(QMainWindow):
         self.analyzeButton.setToolTip("Run security scan and text extraction")
         self.analyzeButton.clicked.connect(self.start_analysis)
 
+        self.exportButton = QPushButton("  Export Report  ")
+        self.exportButton.setObjectName("exportButton")
+        self.exportButton.setMinimumHeight(40)
+        self.exportButton.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.exportButton.setToolTip("Save analysis results as a PDF report")
+        self.exportButton.clicked.connect(self.export_report)
+        self.exportButton.hide()
+
         analyze_layout.addWidget(analyze_label)
         analyze_layout.addWidget(self.analyzeButton)
+        analyze_layout.addWidget(self.exportButton)
         layout.addWidget(analyze_widget)
 
         # Spacer
@@ -731,10 +769,12 @@ class MainWindow(QMainWindow):
 
         self.selected_file = file_path
         self._last_scan = suspicious   # store so worker reuses it — no double scan
+        self._last_analysis = {}  # Clear previous analysis
         self.fileLabel.setText(os.path.basename(file_path))
         self.analyzeButton.setEnabled(True)
         self.resultsTextEdit.clear()
         self.progressBar.hide()  # Ensure progress bar is hidden when selecting new file
+        self.exportButton.hide()  # Hide export button for new file
         self.statusDot.setText("● Ready")
         self.statusBar().showMessage(f"Loaded: {os.path.basename(file_path)}")
         logging.info(f"File selected: {file_path}")
@@ -770,6 +810,7 @@ class MainWindow(QMainWindow):
         self._worker.result.connect(self.resultsTextEdit.setHtml)
         self._worker.status.connect(self.statusBar().showMessage)
         self._worker.status.connect(self._update_dot)
+        self._worker.analysis_ready.connect(self._store_analysis)
         self._worker.finished.connect(self._on_finished)
         self._worker.finished.connect(self._thread.quit)
         self._worker.finished.connect(self._worker.deleteLater)
@@ -793,6 +834,134 @@ class MainWindow(QMainWindow):
         
         self.analyzeButton.setEnabled(True)
         self.selectButton.setEnabled(True)
+        
+        # Show export button if analysis was successful
+        if self._last_analysis:
+            self.exportButton.show()
+
+    def _store_analysis(self, analysis: dict):
+        """Store the analysis result for export functionality."""
+        self._last_analysis = analysis
+
+    def export_report(self):
+        """Export the analysis results to a formatted PDF file."""
+        # Check if there's content to export
+        if not self._last_analysis or not self.resultsTextEdit.toPlainText():
+            return
+
+        # Open save dialog
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save Analysis Report", "Resume_Analysis_Report.pdf",
+            "PDF Files (*.pdf)"
+        )
+        if not file_path:
+            return
+
+        # Disable export button during generation
+        self.exportButton.setEnabled(False)
+
+        try:
+            # Create PDF
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_margins(left=15, top=10, right=15)
+            pdf.set_auto_page_break(auto=True, margin=15)
+
+            # Header section
+            pdf.set_fill_color(15, 17, 23)  # Dark background #0f1117
+            pdf.rect(0, 0, 210, 40, 'F')
+            
+            pdf.set_y(12)
+            pdf.set_font("Helvetica", "B", 16)
+            pdf.set_text_color(255, 255, 255)  # White
+            pdf.cell(0, 8, "RESUME ANALYSIS REPORT", 0, 1, 'C')
+            
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(148, 163, 184)  # Light gray
+            pdf.cell(0, 5, "Generated by DocumentScannerAI", 0, 1, 'C')
+            
+            pdf.set_text_color(110, 231, 183)  # Cyan-ish #6ee7b7
+            filename_text = f"File: {os.path.basename(self.selected_file) if self.selected_file else 'Unknown'}"
+            pdf.cell(0, 5, filename_text, 0, 1, 'C')
+            
+            pdf.set_y(45)
+            pdf.set_left_margin(15)
+            pdf.set_x(15)
+
+            # Helper function for section headers
+            def add_section(title: str, content):
+                pdf.set_fill_color(26, 32, 53)  # RGB 26,32,53
+                pdf.set_font("Helvetica", "B", 11)
+                pdf.set_text_color(255, 255, 255)
+                pdf.set_x(15)
+                pdf.cell(0, 8, f"  {title}", 0, 1, 'L', True)
+                
+                pdf.set_font("Helvetica", "", 10)
+                pdf.set_text_color(148, 163, 184)  # Dark gray
+                pdf.ln(2)
+                
+                pdf.set_x(15)
+                if isinstance(content, list):
+                    for item in content:
+                        pdf.set_x(15)
+                        # Remove extra long lines if needed
+                        item_text = str(item)
+                        pdf.multi_cell(0, 5, f"> {item_text}")
+                else:
+                    pdf.multi_cell(0, 5, str(content))
+                
+                pdf.ln(3)
+
+            # Add sections from analysis
+            if "overall_impression" in self._last_analysis:
+                add_section("OVERALL IMPRESSION", self._last_analysis["overall_impression"])
+            
+            if "strengths" in self._last_analysis:
+                add_section("STRENGTHS", self._last_analysis["strengths"])
+            
+            if "areas_to_improve" in self._last_analysis:
+                add_section("AREAS TO IMPROVE", self._last_analysis["areas_to_improve"])
+            
+            if "key_skills" in self._last_analysis:
+                add_section("KEY SKILLS DETECTED", self._last_analysis["key_skills"])
+            
+            if "recommendations" in self._last_analysis:
+                add_section("RECOMMENDATIONS", self._last_analysis["recommendations"])
+
+            # Footer
+            def add_footer():
+                pdf.set_y(-20)
+                pdf.set_draw_color(148, 163, 184)
+                pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+                pdf.ln(2)
+                pdf.set_font("Helvetica", "", 8)
+                pdf.set_text_color(148, 163, 184)
+                pdf.set_x(15)
+                pdf.cell(90, 5, "DocumentScannerAI  |  Confidential", 0, 0, 'L')
+                pdf.cell(90, 5, f"Page {pdf.page_no()}", 0, 0, 'R')
+
+            # Add footer to current page
+            add_footer()
+
+            # Save the PDF
+            pdf.output(file_path)
+
+            QMessageBox.information(
+                self, "Report Exported",
+                f"Report saved to:\n\n{file_path}"
+            )
+            logging.info(f"Report exported to: {file_path}")
+
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Export Failed",
+                f"Failed to export report:\n\n{str(e)}"
+            )
+            logging.error(f"Export error: {e}")
+        
+        finally:
+            # Re-enable export button
+            self.exportButton.setEnabled(True)
 
     def _reset_thread_refs(self):
         self._thread = None
