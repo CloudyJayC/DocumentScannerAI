@@ -169,7 +169,7 @@ Run `pip install -r requirements.txt` to make sure all dependencies are installe
 - [x] Professional dark-theme GUI
 - [x] Local AI resume analysis (strengths, weaknesses, skills, recommendations)
 - [x] Progress bar during AI analysis
-- [ ] Export analysis to PDF report
+- [x] Export analysis to PDF report
 - [ ] Support for DOCX and TXT input
 - [ ] Custom model selection in GUI
 - [ ] Camera scanner integration (OpenCV)

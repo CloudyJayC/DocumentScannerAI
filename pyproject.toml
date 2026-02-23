@@ -30,7 +30,7 @@ classifiers = [
 dependencies = [
     "PyQt6==6.6.1",
     "pdfplumber==0.10.3",
-    "requests==2.31.0",
+    "fpdf2==2.7.9",
 ]
 
 [project.optional-dependencies]

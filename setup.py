@@ -32,7 +32,7 @@ setup(
     install_requires=[
         "PyQt6==6.6.1",
         "pdfplumber==0.10.3",
-        "requests==2.31.0",
+        "fpdf2==2.7.9",
     ],
     entry_points={
         "console_scripts": [
