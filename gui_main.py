@@ -18,7 +18,7 @@ import logging
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QTextEdit, QFrame, QFileDialog, QMessageBox,
-    QStatusBar, QSizePolicy
+    QStatusBar, QSizePolicy, QProgressBar
 )
 from PyQt6.QtCore import QThread, pyqtSignal, QObject, Qt
 from PyQt6.QtGui import QFont
@@ -171,6 +171,18 @@ QTextEdit#resultsTextEdit {
 }
 QTextEdit#resultsTextEdit[placeholderText] {
     color: #374151;
+}
+
+QProgressBar#analysisProgress {
+    background-color: #0a0d14;
+    border: none;
+    max-height: 6px;
+    min-height: 6px;
+    text-align: center;
+}
+QProgressBar#analysisProgress::chunk {
+    background-color: #6ee7b7;
+    border: none;
 }
 
 QScrollBar:vertical {
@@ -626,7 +638,7 @@ class MainWindow(QMainWindow):
         footer.setObjectName("sidebarFooter")
         footer_layout = QVBoxLayout(footer)
         footer_layout.setContentsMargins(20, 12, 20, 16)
-        version = QLabel("v1.0.0  ·  MIT License")
+        version = QLabel("v1.1.0  ·  MIT License")
         version.setObjectName("versionLabel")
         footer_layout.addWidget(version)
         layout.addWidget(footer)
@@ -668,8 +680,16 @@ class MainWindow(QMainWindow):
         )
         self.resultsTextEdit.setFrameShape(QFrame.Shape.NoFrame)
 
+        # Progress bar
+        self.progressBar = QProgressBar()
+        self.progressBar.setObjectName("analysisProgress")
+        self.progressBar.setTextVisible(False)
+        self.progressBar.setRange(0, 1)
+        self.progressBar.hide()
+
         layout.addWidget(top_bar)
         layout.addWidget(self.resultsTextEdit)
+        layout.addWidget(self.progressBar)
 
         return main
 
@@ -714,6 +734,7 @@ class MainWindow(QMainWindow):
         self.fileLabel.setText(os.path.basename(file_path))
         self.analyzeButton.setEnabled(True)
         self.resultsTextEdit.clear()
+        self.progressBar.hide()  # Ensure progress bar is hidden when selecting new file
         self.statusDot.setText("● Ready")
         self.statusBar().showMessage(f"Loaded: {os.path.basename(file_path)}")
         logging.info(f"File selected: {file_path}")
@@ -736,6 +757,10 @@ class MainWindow(QMainWindow):
         self.resultsTextEdit.clear()
         self.statusDot.setText("● Running")
         self.statusBar().showMessage("Analyzing…")
+        
+        # Show and start indeterminate progress animation
+        self.progressBar.setRange(0, 0)
+        self.progressBar.show()
 
         self._thread = QThread()
         self._worker = AnalysisWorker(self.selected_file, self._last_scan)
@@ -762,6 +787,10 @@ class MainWindow(QMainWindow):
             self.statusDot.setText("● Ready")
 
     def _on_finished(self):
+        # Hide and stop progress animation
+        self.progressBar.setRange(0, 1)
+        self.progressBar.hide()
+        
         self.analyzeButton.setEnabled(True)
         self.selectButton.setEnabled(True)
 

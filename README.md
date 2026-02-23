@@ -12,6 +12,7 @@ A modular, AI-powered PDF resume scanner and analyzer with a professional dark-t
 ## Features
 
 - **Professional GUI** — Dark-themed PyQt6 sidebar interface, no terminal required
+- **Visual Progress Indicator** — Sleek indeterminate progress bar shows analysis status in real-time
 - **PDF Validation** — Extension check + magic number (`%PDF-`) verification
 - **Security Scanning** — Detects embedded JavaScript, auto-run actions, launch commands, and embedded files before analysis begins
 - **Intelligent Text Extraction** — Resume-specific cleaning via `pdfplumber`: section header detection, hyphenated line break fixes, junk line removal, whitespace collapsing
@@ -167,8 +168,8 @@ Run `pip install -r requirements.txt` to make sure all dependencies are installe
 - [x] Resume-specific text extraction and cleaning
 - [x] Professional dark-theme GUI
 - [x] Local AI resume analysis (strengths, weaknesses, skills, recommendations)
+- [x] Progress bar during AI analysis
 - [ ] Export analysis to PDF report
-- [ ] Progress bar during AI analysis
 - [ ] Support for DOCX and TXT input
 - [ ] Custom model selection in GUI
 - [ ] Camera scanner integration (OpenCV)
