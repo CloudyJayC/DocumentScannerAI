@@ -1,8 +1,8 @@
 # Contributing to DocumentScannerAI
 
-First off, thanks for taking the time to contribute! 🎉
+Thanks for contributing!
 
-This document provides guidelines and instructions for contributing to the DocumentScannerAI project.
+This document covers guidelines for contributing to DocumentScannerAI.
 
 ## Code of Conduct
 
@@ -10,9 +10,9 @@ This project and everyone participating in it is governed by our Code of Conduct
 
 ## How Can I Contribute?
 
-### Reporting Bugs 🐛
+### Reporting Bugs
 
-Before creating a bug report, please check the issue list as you might find out that you don't need to create one. When you are creating a bug report, please include as many details as possible:
+Before creating a bug report, check the issue list to avoid duplicates. Include as much detail as possible:
 
 - **Use a clear and descriptive title**
 - **Describe the exact steps which reproduce the problem**
@@ -26,9 +26,9 @@ Before creating a bug report, please check the issue list as you might find out 
   - Ollama version
   - PyQt6 version
 
-### Suggesting Enhancements 💡
+### Suggesting Improvements
 
-Enhancement suggestions are tracked as GitHub issues. When creating an enhancement suggestion, please include:
+Improvement suggestions are tracked as GitHub issues. Include:
 
 - **Use a clear and descriptive title**
 - **Provide a step-by-step description of the suggested enhancement**
@@ -297,4 +297,4 @@ Contributors are recognized in:
 
 ---
 
-Thank you for contributing to DocumentScannerAI! 🎉
+Thank you for contributing to DocumentScannerAI!

@@ -121,8 +121,8 @@ def _create_fallback_analysis(resume_text: str) -> dict:
 
 def _parse_json_response(response_text: str) -> dict:
     """
-    Robustly extracts a JSON object from the model response.
-    Returns fallback if JSON cannot be parsed.
+    Extract JSON from model response.
+    Returns fallback analysis if JSON parsing fails.
     """
     logger.debug("Parsing JSON response from AI model")
     original_text = response_text

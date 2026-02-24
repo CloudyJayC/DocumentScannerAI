@@ -5,25 +5,25 @@
 [![PyQt6](https://img.shields.io/badge/GUI-PyQt6-41CD52?logo=qt&logoColor=white)](https://www.riverbankcomputing.com/software/pyqt/)
 [![Ollama](https://img.shields.io/badge/AI-Ollama-000000)](https://ollama.com)
 
-A modular, AI-powered PDF resume scanner and analyzer with a professional dark-theme GUI built on **PyQt6**, powered by a local **Ollama LLM** (llama3.1:8b). All processing runs locally — no data is sent to external servers.
+A PDF resume analyzer with a dark-themed GUI. Uses a local **Ollama LLM** (llama3.1:8b) to analyze resumes. All processing runs on your machine — nothing is sent to external servers.
 
 ---
 
 ## Features
 
-- **Professional GUI** — Dark-themed PyQt6 sidebar interface, no terminal required
-- **Visual Progress Indicator** — Sleek indeterminate progress bar shows analysis status in real-time
-- **PDF Validation** — Extension check + magic number (`%PDF-`) verification
-- **Security Scanning** — Detects embedded JavaScript, auto-run actions, launch commands, and embedded files before analysis begins
-- **Intelligent Text Extraction** — Resume-specific cleaning via `pdfplumber`: section header detection, hyphenated line break fixes, junk line removal, whitespace collapsing
-- **Local AI Resume Analysis** — Structured analysis powered by `llama3.1:8b` running on your machine:
+- **Dark-themed GUI** — PyQt6 interface with sidebar controls, no terminal required
+- **Progress Bar** — Visual indicator while analysis is running
+- **PDF Validation** — Checks file extension and PDF magic number (`%PDF-`)
+- **Security Scanning** — Scans for embedded JavaScript, auto-run actions, launch commands, and hidden files
+- **Text Extraction** — Resume-specific cleanup via `pdfplumber`: detects section headers, fixes hyphenated breaks, removes junk lines, normalizes whitespace
+- **Local AI Analysis** — Uses `llama3.1:8b` running locally:
   - Overall impression
   - Strengths
-  - Areas to improve
-  - Key skills detected
-  - Actionable recommendations
-- **Privacy First** — Nothing leaves your machine. No API keys, no accounts, no telemetry
-- **Full Logging** — Comprehensive audit trail written to `logs/app.log`
+  - Weaknesses
+  - Key skills
+  - Recommendations
+- **Privacy** — All processing stays on your machine. No API keys, no accounts, no telemetry
+- **Logging** — Full audit trail written to `logs/app.log`
 
 ---
 

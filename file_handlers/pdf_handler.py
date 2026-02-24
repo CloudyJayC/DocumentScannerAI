@@ -1,11 +1,9 @@
 """
 pdf_handler.py — PDF Text Extraction and Cleaning
 
-Provides robust text extraction from PDF files with intelligent cleaning
-optimized for resume documents. Handles hyphenated line breaks, removes
-junk lines, identifies section headers, and formats output for analysis.
-
-Uses pdfplumber for reliable text extraction with custom tolerances.
+Extracts and cleans text from PDF files, optimized for resumes.
+Handles hyphenated line breaks, removes junk lines, detects section headers,
+and normalizes whitespace. Uses pdfplumber with custom tolerances.
 """
 
 import re
