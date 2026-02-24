@@ -23,7 +23,7 @@ A modular, AI-powered PDF resume scanner and analyzer with a professional dark-t
   - Key skills detected
   - Actionable recommendations
 - **Privacy First** — Nothing leaves your machine. No API keys, no accounts, no telemetry
-- **Full Logging** — Audit trail written to `scanner.log`
+- **Full Logging** — Comprehensive audit trail written to `logs/app.log`
 
 ---
 
@@ -110,16 +110,19 @@ DocumentScannerAI/
 │   └── ai_analysis.py          — Ollama LLM interface and JSON parsing
 ├── file_handlers/
 │   └── pdf_handler.py          — PDF text extraction and cleaning
-├── reports/
-│   └── report_generator.py     — legacy report generator (unused by GUI)
-├── security/
-│   └── error_handling.py       — logging helpers (used by terminal mode)
+├── ui/
+│   ├── main_window.py          — Main application window and UI logic
+│   ├── workers.py              — Background worker threads
+│   └── styles.py               — Application stylesheet
+├── utils/
+│   ├── logger.py               — Centralized logging configuration
+│   ├── validators.py           — PDF validation and security scanning
+│   └── html_helpers.py         — HTML rendering for results display
 ├── tests/
-│   └── test_all.py             — unit tests
-├── sample_resumes/             — sample PDFs for testing
-├── config.py                   — shared configuration
-├── gui_main.py                 — GUI entry point ← run this
-├── main.py                     — legacy terminal entry point
+│   └── test_*.py               — Unit and integration tests
+├── sample_resumes/             — Sample PDFs for testing
+├── config.py                   — Centralized configuration
+├── gui_main.py                 — Application entry point ← run this
 ├── requirements.txt
 └── README.md
 ```

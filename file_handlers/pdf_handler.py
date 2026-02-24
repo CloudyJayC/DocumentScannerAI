@@ -11,6 +11,11 @@ Uses pdfplumber for reliable text extraction with custom tolerances.
 import re
 import pdfplumber
 
+from config import PDF_X_TOLERANCE, PDF_Y_TOLERANCE, RESUME_SECTION_HEADERS
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 def extract_text_from_pdf(file_path: str) -> str:
     """Extract and clean text from a PDF file.
@@ -28,24 +33,37 @@ def extract_text_from_pdf(file_path: str) -> str:
     Raises:
         RuntimeError: If file cannot be read or pdfplumber fails
     """
+    logger.info(f"Extracting text from PDF: {file_path}")
+    
     try:
         raw_pages = []
         with pdfplumber.open(file_path) as pdf:
-            for page in pdf.pages:
+            logger.debug(f"PDF has {len(pdf.pages)} pages")
+            for i, page in enumerate(pdf.pages):
                 # Use custom tolerances for reliable text extraction
                 # x_tolerance: allows slight horizontal spacing variations
                 # y_tolerance: allows slight vertical spacing variations
-                page_text = page.extract_text(x_tolerance=2, y_tolerance=3)
+                page_text = page.extract_text(
+                    x_tolerance=PDF_X_TOLERANCE, 
+                    y_tolerance=PDF_Y_TOLERANCE
+                )
                 if page_text:
                     raw_pages.append(page_text)
+                    logger.debug(f"Extracted {len(page_text)} chars from page {i+1}")
 
         if not raw_pages:
+            logger.warning(f"No text extracted from PDF (likely image-only): {file_path}")
             return ""  # Likely an image-only PDF
 
         raw_text = "\n".join(raw_pages)
-        return _clean_text(raw_text)
+        logger.info(f"Extracted {len(raw_text)} chars from {len(raw_pages)} pages")
+        
+        cleaned_text = _clean_text(raw_text)
+        logger.info(f"Cleaned text: {len(cleaned_text)} chars")
+        return cleaned_text
 
     except Exception as e:
+        logger.error(f"Failed to extract text from PDF {file_path}: {e}", exc_info=True)
         raise RuntimeError(f"Failed to read PDF: {e}") from e
 
 
@@ -53,9 +71,12 @@ def _clean_text(text: str) -> str:
     """Apply intelligent cleaning rules to raw PDF text.
     
     Performs multiple passes to clean and normalize the text:
-    1. Remove non-printable characters and unicode garbage
-    2. Fix hyphenated line breaks (word-\\nbreak → wordbreak)
-    3. Collapse multiple spaces/tabs per line
+    logger.debug("Starting text cleaning process")
+    
+    # PASS 1: Remove non-printable characters and unicode trash
+    text = text.encode("utf-8", errors="ignore").decode("utf-8")
+    text = re.sub(r'[^\x20-\x7E\n]', ' ', text)
+    logger.debug("Pass 1 complete: removed non-printable characters"
     4. Remove junk lines (symbols, page numbers, single chars)
     5. Add spacing before section headers for structure
     6. Remove excessive blank lines (max one consecutive)
@@ -70,10 +91,12 @@ def _clean_text(text: str) -> str:
     text = text.encode("utf-8", errors="ignore").decode("utf-8")
     text = re.sub(r'[^\x20-\x7E\n]', ' ', text)
 
-    # PASS 2: Fix hyphenated line breaks from PDF column layout
-    # Example: "Computer-\nScience" becomes "ComputerScience"
-    text = re.sub(r'-\n(\S)', r'\1', text)
+    logger.debug("Pass 2 complete: fixed hyphenated line breaks")
 
+    # PASS 3: Normalize spacing — collapse tabs and multiple spaces
+    lines = text.split("\n")
+    lines = [re.sub(r'[ \t]+', ' ', line).strip() for line in lines]
+    logger.debug(f"Pass 3 complete: normalized spacing on {len(lines)} lines")
     # PASS 3: Normalize spacing — collapse tabs and multiple spaces
     lines = text.split("\n")
     lines = [re.sub(r'[ \t]+', ' ', line).strip() for line in lines]
@@ -92,34 +115,12 @@ def _clean_text(text: str) -> str:
         if len(line) == 1:
             continue
         cleaned.append(line)
+    
+    logger.debug(f"Pass 4 complete: filtered {len(lines) - len(cleaned)} junk lines")
 
     # PASS 5: Add blank line before detected section headers
     # This makes the document structure clearer for both reading and AI analysis
-    # Extended keywords for different resume styles and structures
-    common_headers = {
-        # Education
-        "education", "academic", "qualifications", "degree", "credentials",
-        # Experience/Work
-        "experience", "employment", "work experience", "career history", "professional experience",
-        "positions held", "work history", "job history", "professional background",
-        # Skills
-        "skills", "technical skills", "core competencies", "competencies", "expertise",
-        "proficiencies", "abilities", "capabilities", "areas of expertise",
-        # Summary
-        "summary", "professional summary", "executive summary", "profile", "objective",
-        "career objective", "professional objective", "about", "about me",
-        # Certifications/Training
-        "certifications", "certification", "certified", "licenses", "license", "training",
-        "professional development", "courses", "accreditations",
-        # Projects
-        "projects", "portfolio", "key projects", "notable projects",
-        # Additional
-        "awards", "honors", "recognition", "achievements", "accomplishments",
-        "languages", "language", "volunteer", "volunteering", "volunteer work",
-        "publications", "references", "contact", "contact information", "details",
-        "interests", "additional", "activities", "involvement", "leadership",
-        "technical expertise", "knowledge", "tools", "technologies", "technical proficiencies",
-    }
+    # Keywords from config.py
     spaced = []
     for i, line in enumerate(cleaned):
         lower = line.lower().strip()
@@ -133,14 +134,16 @@ def _clean_text(text: str) -> str:
             and (
                 line.isupper() or 
                 line.istitle() or 
-                lower_clean in common_headers or
-                lower in common_headers
+                lower_clean in RESUME_SECTION_HEADERS or
+                lower in RESUME_SECTION_HEADERS
             )
         )
         # Add spacing before header to separate sections
         if is_header and i > 0 and spaced and spaced[-1] != "":
             spaced.append("")  # Insert blank line before section
         spaced.append(line)
+    
+    logger.debug(f"Pass 5 complete: added section spacing")
 
     # PASS 6: Collapse excessive blank lines (limit to 1 consecutive)
     # This prevents empty space from bloating the output
@@ -155,4 +158,6 @@ def _clean_text(text: str) -> str:
             blank_count = 0
             final.append(line)
 
-    return "\n".join(final).strip()
+    result = "\n".join(final).strip()
+    logger.debug(f"Pass 6 complete: collapsed blank lines, final length {len(result)} chars")
+    return result
