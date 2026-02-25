@@ -8,7 +8,7 @@ This package contains shared utility functions used across the application:
 """
 
 from .logger import get_logger
-from .validators import is_pdf_file, scan_pdf_for_malicious_content
+from .validators import is_pdf_file, scan_pdf_for_malicious_content, check_file_size
 from .html_helpers import (
     render_section_header,
     render_ok_line,
@@ -21,6 +21,7 @@ from .html_helpers import (
 __all__ = [
     "get_logger",
     "is_pdf_file",
+    "check_file_size",
     "scan_pdf_for_malicious_content",
     "render_section_header",
     "render_ok_line",

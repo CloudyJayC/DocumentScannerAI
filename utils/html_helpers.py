@@ -5,6 +5,8 @@ Provides functions to format analysis results as styled HTML for display
 in the Qt results text edit widget.
 """
 
+from typing import Any
+
 
 def render_section_header(title: str, color: str, icon: str = "") -> str:
     """
@@ -68,7 +70,7 @@ def render_error_line(text: str) -> str:
     return f'<p style="color:#f87171; font-size:11px; font-weight:600; margin:3px 0 0 2px;">{text}</p>'
 
 
-def render_ai_analysis(analysis: dict) -> str:
+def render_ai_analysis(analysis: dict[str, Any]) -> str:
     """
     Render structured AI analysis results as formatted HTML.
     
@@ -96,7 +98,7 @@ def render_ai_analysis(analysis: dict) -> str:
             f'margin:0 0 16px 2px;">{impression}</p>'
         )
 
-    def _subsection(title: str, color: str, items: list) -> str:
+    def _subsection(title: str, color: str, items: list[str]) -> str:
         """Render a subsection with title and bulleted items."""
         if not items:
             return ""
@@ -159,7 +161,7 @@ def render_text_block(text: str) -> str:
         .replace('"', "&quot;")
     )
     
-    lines_html = []
+    lines_html: list[str] = []
     for line in escaped.split("\n"):
         stripped = line.strip()
         if not stripped:

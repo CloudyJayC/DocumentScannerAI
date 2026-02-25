@@ -15,6 +15,9 @@ ALLOWED_EXTENSIONS = {'.pdf'}
 # PDF magic number for validation
 PDF_MAGIC_NUMBER = b"%PDF-"
 
+# Maximum file size (in MB) to prevent memory issues
+MAX_FILE_SIZE_MB = 50
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Security Scanning
@@ -127,3 +130,59 @@ WINDOW_DEFAULT_HEIGHT = 720
 
 # Sidebar dimensions
 SIDEBAR_WIDTH = 260
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Configuration Validation
+# ══════════════════════════════════════════════════════════════════════════════
+
+def validate_config():
+    """
+    Validate all configuration values are within acceptable ranges.
+    Raises ValueError if any configuration is invalid.
+    """
+    errors = []
+    
+    # Validate AI parameters
+    if not (0.0 <= AI_TEMPERATURE <= 1.0):
+        errors.append(f"AI_TEMPERATURE must be between 0.0 and 1.0, got {AI_TEMPERATURE}")
+    
+    if not (0.0 <= AI_TOP_P <= 1.0):
+        errors.append(f"AI_TOP_P must be between 0.0 and 1.0, got {AI_TOP_P}")
+    
+    if AI_NUM_PREDICT < 1:
+        errors.append(f"AI_NUM_PREDICT must be positive, got {AI_NUM_PREDICT}")
+    
+    if AI_NUM_CTX < 1:
+        errors.append(f"AI_NUM_CTX must be positive, got {AI_NUM_CTX}")
+    
+    if AI_TIMEOUT < 1:
+        errors.append(f"AI_TIMEOUT must be positive, got {AI_TIMEOUT}")
+    
+    # Validate PDF settings
+    if PDF_X_TOLERANCE < 0:
+        errors.append(f"PDF_X_TOLERANCE must be non-negative, got {PDF_X_TOLERANCE}")
+    
+    if PDF_Y_TOLERANCE < 0:
+        errors.append(f"PDF_Y_TOLERANCE must be non-negative, got {PDF_Y_TOLERANCE}")
+    
+    if MAX_FILE_SIZE_MB < 1:
+        errors.append(f"MAX_FILE_SIZE_MB must be at least 1, got {MAX_FILE_SIZE_MB}")
+    
+    # Validate text processing
+    if RESUME_MAX_WORDS < 1:
+        errors.append(f"RESUME_MAX_WORDS must be positive, got {RESUME_MAX_WORDS}")
+    
+    # Validate GUI settings
+    if WINDOW_MIN_WIDTH < 1 or WINDOW_MIN_HEIGHT < 1:
+        errors.append("Window dimensions must be positive")
+    
+    if SIDEBAR_WIDTH < 1:
+        errors.append(f"SIDEBAR_WIDTH must be positive, got {SIDEBAR_WIDTH}")
+    
+    if errors:
+        raise ValueError("Configuration validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
+
+
+# Validate configuration on import
+validate_config()

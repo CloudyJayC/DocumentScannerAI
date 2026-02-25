@@ -6,18 +6,50 @@ Validates file extensions, magic numbers, and scans for suspicious PDF features.
 """
 
 import os
+from config import MAX_FILE_SIZE_MB
 from .logger import get_logger
 
 logger = get_logger(__name__)
 
 
+def check_file_size(file_path: str) -> tuple[bool, str]:
+    """
+    Check if file size is within acceptable limits.
+    
+    Args:
+        file_path: Path to the file to check
+    
+    Returns:
+        Tuple of (is_valid, error_message)
+        - (True, "") if file size is acceptable
+        - (False, error_message) if file is too large
+    """
+    try:
+        file_size_bytes = os.path.getsize(file_path)
+        file_size_mb = file_size_bytes / (1024 * 1024)
+        
+        if file_size_mb > MAX_FILE_SIZE_MB:
+            msg = f"File too large: {file_size_mb:.1f}MB (max: {MAX_FILE_SIZE_MB}MB)"
+            logger.warning(f"{msg}: {file_path}")
+            return False, msg
+        
+        logger.debug(f"File size OK: {file_size_mb:.1f}MB for {file_path}")
+        return True, ""
+        
+    except Exception as e:
+        msg = f"Error checking file size: {e}"
+        logger.error(f"{msg} for {file_path}")
+        return False, msg
+
+
 def is_pdf_file(file_path: str) -> bool:
     """
-    Validate that a file is a genuine PDF using both extension and magic number.
+    Validate that a file is a genuine PDF using extension, magic number, and size check.
     
     Checks:
-    1. File has .pdf extension
-    2. File starts with %PDF- magic number (PDF signature)
+    1. File size is within limits
+    2. File has .pdf extension
+    3. File starts with %PDF- magic number (PDF signature)
     
     Args:
         file_path: Path to the file to validate
@@ -25,6 +57,11 @@ def is_pdf_file(file_path: str) -> bool:
     Returns:
         True if file is a valid PDF, False otherwise
     """
+    # Check file size first to avoid processing huge files
+    size_ok, _ = check_file_size(file_path)
+    if not size_ok:
+        return False
+    
     # Check extension
     _, ext = os.path.splitext(file_path)
     if ext.lower() != ".pdf":
@@ -48,7 +85,7 @@ def is_pdf_file(file_path: str) -> bool:
         return False
 
 
-def scan_pdf_for_malicious_content(file_path: str) -> dict:
+def scan_pdf_for_malicious_content(file_path: str) -> dict[str, int]:
     """
     Scan PDF binary content for suspicious features that may indicate malware.
     
@@ -67,7 +104,7 @@ def scan_pdf_for_malicious_content(file_path: str) -> dict:
         Dictionary mapping suspicious keywords to occurrence counts
         Example: {"/JS": 2, "/JavaScript": 1, "/AA": 0, ...}
     """
-    suspicious_keywords = {
+    suspicious_keywords: dict[str, int] = {
         "/JS": 0,              # JavaScript in PDF
         "/JavaScript": 0,      # JavaScript object
         "/AA": 0,              # Auto-Action (triggers on open)

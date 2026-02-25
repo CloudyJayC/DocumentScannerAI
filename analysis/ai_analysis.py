@@ -9,6 +9,7 @@ import json
 import re
 import urllib.request
 import urllib.error
+from typing import Any
 
 from config import (
     OLLAMA_URL,
@@ -24,6 +25,8 @@ from config import (
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+AnalysisResult = dict[str, Any]
 
 PROMPT_TEMPLATE = """Analyze this resume and output ONLY valid JSON with no other text.
 
@@ -74,7 +77,7 @@ def _extract_resume_section(text: str) -> str:
     return result
 
 
-def _create_fallback_analysis(resume_text: str) -> dict:
+def _create_fallback_analysis(resume_text: str) -> AnalysisResult:
     """
     Create a reasonable analysis from resume text when AI parsing fails.
     Extracts key information deterministically.
@@ -87,7 +90,7 @@ def _create_fallback_analysis(resume_text: str) -> dict:
     has_experience = "experience" in text_lower or "worked" in text_lower
     has_education = "education" in text_lower or "degree" in text_lower or "university" in text_lower
     
-    strengths = []
+    strengths: list[str] = []
     if has_education:
         strengths.append("Strong educational background")
     if has_experience:
@@ -97,7 +100,7 @@ def _create_fallback_analysis(resume_text: str) -> dict:
     if len(strengths) < 3:
         strengths.append("Well-documented background")
     
-    weaknesses = []
+    weaknesses: list[str] = []
     if "no experience" in text_lower or len(resume_text.split()) < 100:
         weaknesses.append("Limited work history")
     else:
@@ -119,7 +122,7 @@ def _create_fallback_analysis(resume_text: str) -> dict:
     }
 
 
-def _parse_json_response(response_text: str) -> dict:
+def _parse_json_response(response_text: str) -> AnalysisResult:
     """
     Extract JSON from model response.
     Returns fallback analysis if JSON parsing fails.
@@ -170,7 +173,7 @@ def _parse_json_response(response_text: str) -> dict:
     return _create_fallback_analysis(original_text)
 
 
-def analyse_resume(text: str) -> dict:
+def analyse_resume(text: str) -> AnalysisResult:
     """
     Sends resume text to local Ollama instance and returns structured analysis.
 

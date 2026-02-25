@@ -6,6 +6,7 @@ event handlers, and application logic for DocumentScannerAI.
 """
 
 import os
+from typing import Any
 from datetime import datetime
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -16,7 +17,7 @@ from PyQt6.QtCore import QThread, Qt
 from fpdf import FPDF
 
 from .workers import AnalysisWorker
-from utils.validators import is_pdf_file, scan_pdf_for_malicious_content
+from utils.validators import is_pdf_file, scan_pdf_for_malicious_content, check_file_size
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -49,15 +50,15 @@ class MainWindow(QMainWindow):
         
         # State variables
         self.selected_file: str | None = None
-        self._last_scan: dict = {}
-        self._last_analysis: dict = {}
+        self._last_scan: dict[str, int] = {}
+        self._last_analysis: dict[str, Any] = {}
         self._thread: QThread | None = None
         self._worker: AnalysisWorker | None = None
 
         self._build_ui()
         logger.info("Main window initialized")
 
-    def _build_ui(self):
+    def _build_ui(self) -> None:
         """Build the entire UI layout."""
         central = QWidget()
         self.setCentralWidget(central)
@@ -247,7 +248,7 @@ class MainWindow(QMainWindow):
     # File selection
     # ══════════════════════════════════════════════════════════════════════════
 
-    def select_pdf(self):
+    def select_pdf(self) -> None:
         """Handle PDF file selection."""
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Select a PDF Document", "",
@@ -257,6 +258,18 @@ class MainWindow(QMainWindow):
             return
 
         logger.info(f"User selected file: {file_path}")
+
+        # Check file size first
+        size_ok, size_error = check_file_size(file_path)
+        if not size_ok:
+            QMessageBox.critical(
+                self, "File Too Large",
+                f"{size_error}\n\n"
+                f"File: {os.path.basename(file_path)}\n\n"
+                "Please select a smaller PDF file."
+            )
+            logger.warning(f"File rejected (size): {file_path}")
+            return
 
         # Validate file
         if not is_pdf_file(file_path):
@@ -304,7 +317,7 @@ class MainWindow(QMainWindow):
     # Analysis
     # ══════════════════════════════════════════════════════════════════════════
 
-    def start_analysis(self):
+    def start_analysis(self) -> None:
         """Start the analysis workflow in a background thread."""
         if not self.selected_file:
             return
@@ -350,7 +363,7 @@ class MainWindow(QMainWindow):
         self._thread.start()
         logger.debug("Analysis thread started")
 
-    def _update_dot(self, status: str):
+    def _update_dot(self, status: str) -> None:
         """Update the status dot based on status message."""
         if "Scanning" in status:
             self.statusDot.setText("● Scanning")
@@ -359,7 +372,7 @@ class MainWindow(QMainWindow):
         elif "Ready" in status:
             self.statusDot.setText("● Ready")
 
-    def _on_finished(self):
+    def _on_finished(self) -> None:
         """Handle analysis completion."""
         # Hide progress bar
         self.progressBar.setRange(0, 1)
@@ -376,12 +389,12 @@ class MainWindow(QMainWindow):
         else:
             logger.info("Analysis completed without results")
 
-    def _store_analysis(self, analysis: dict):
+    def _store_analysis(self, analysis: dict[str, Any]) -> None:
         """Store analysis results for export."""
         self._last_analysis = analysis
         logger.debug("Analysis results stored")
 
-    def _reset_thread_refs(self):
+    def _reset_thread_refs(self) -> None:
         """Clean up thread references."""
         self._thread = None
         self._worker = None
@@ -391,7 +404,7 @@ class MainWindow(QMainWindow):
     # Export
     # ══════════════════════════════════════════════════════════════════════════
 
-    def export_report(self):
+    def export_report(self) -> None:
         """Export analysis results to a formatted PDF report."""
         if not self._last_analysis or not self.resultsTextEdit.toPlainText():
             logger.warning("Export attempted with no analysis results")
@@ -442,7 +455,7 @@ class MainWindow(QMainWindow):
             pdf.set_x(15)
 
             # Helper function for sections
-            def add_section(title: str, content):
+            def add_section(title: str, content: list[str] | str) -> None:
                 pdf.set_fill_color(26, 32, 53)
                 pdf.set_font("Helvetica", "B", 11)
                 pdf.set_text_color(255, 255, 255)

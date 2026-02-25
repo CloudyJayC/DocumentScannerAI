@@ -66,91 +66,79 @@ def extract_text_from_pdf(file_path: str) -> str:
 
 
 def _clean_text(text: str) -> str:
-    """Apply intelligent cleaning rules to raw PDF text.
-    
-    Performs multiple passes to clean and normalize the text:
-    logger.debug("Starting text cleaning process")
-    
-    # PASS 1: Remove non-printable characters and unicode trash
-    text = text.encode("utf-8", errors="ignore").decode("utf-8")
-    text = re.sub(r'[^\x20-\x7E\n]', ' ', text)
-    logger.debug("Pass 1 complete: removed non-printable characters"
-    4. Remove junk lines (symbols, page numbers, single chars)
-    5. Add spacing before section headers for structure
-    6. Remove excessive blank lines (max one consecutive)
-    
+    """Apply cleaning rules to raw PDF text.
+
+    Steps:
+    1. Remove non-printable characters
+    2. Fix hyphenated line breaks
+    3. Normalize spacing
+    4. Remove junk lines
+    5. Add spacing before section headers
+    6. Collapse excessive blank lines
+
     Args:
         text: Raw text extracted from PDF
-    
-    Returns:
-        Cleaned, well-formatted text suitable for display and analysis
-    """
-    # PASS 1: Remove non-printable characters and unicode trash
-    text = text.encode("utf-8", errors="ignore").decode("utf-8")
-    text = re.sub(r'[^\x20-\x7E\n]', ' ', text)
 
+    Returns:
+        Cleaned, formatted text string
+    """
+    logger.debug("Starting text cleaning process")
+
+    # Pass 1: Remove non-printable characters
+    text = text.encode("utf-8", errors="ignore").decode("utf-8")
+    text = re.sub(r"[^\x20-\x7E\n]", " ", text)
+    logger.debug("Pass 1 complete: removed non-printable characters")
+
+    # Pass 2: Fix hyphenated line breaks (e.g., "devel-\nopment")
+    text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)
     logger.debug("Pass 2 complete: fixed hyphenated line breaks")
 
-    # PASS 3: Normalize spacing — collapse tabs and multiple spaces
+    # Pass 3: Normalize spacing
     lines = text.split("\n")
-    lines = [re.sub(r'[ \t]+', ' ', line).strip() for line in lines]
+    lines = [re.sub(r"[ \t]+", " ", line).strip() for line in lines]
     logger.debug(f"Pass 3 complete: normalized spacing on {len(lines)} lines")
-    # PASS 3: Normalize spacing — collapse tabs and multiple spaces
-    lines = text.split("\n")
-    lines = [re.sub(r'[ \t]+', ' ', line).strip() for line in lines]
 
-    # PASS 4: Filter out junk lines that don't contain real content
-    # Remove: pure symbols, page numbers, single characters, empty lines
-    cleaned = []
+    # Pass 4: Filter out junk lines
+    cleaned: list[str] = []
     for line in lines:
         if not line:
-            cleaned.append("")  # Preserve intentional blank lines
+            cleaned.append("")
             continue
-        # Skip lines that are only symbols/numbers/whitespace
-        if re.fullmatch(r'[\W\d\s]+', line):
+        if re.fullmatch(r"[\W\d\s]+", line):
             continue
-        # Skip very short junk (single letters only, but allow 2-letter things like skills)
         if len(line) == 1:
             continue
         cleaned.append(line)
-    
     logger.debug(f"Pass 4 complete: filtered {len(lines) - len(cleaned)} junk lines")
 
-    # PASS 5: Add blank line before detected section headers
-    # This makes the document structure clearer for both reading and AI analysis
-    # Keywords from config.py
-    spaced = []
+    # Pass 5: Add spacing before detected section headers
+    spaced: list[str] = []
     for i, line in enumerate(cleaned):
         lower = line.lower().strip()
-        # Remove trailing punctuation for comparison
-        lower_clean = lower.rstrip(':-•–—').rstrip()
-        
-        # Detect headers: short lines, all caps, title case, or in our keyword list
+        lower_clean = lower.rstrip(":-•–—").rstrip()
+
         is_header = (
-            len(line) < 60  # Reasonable header length
-            and not line.endswith(('.', ',', ';'))  # Not a sentence ending
+            len(line) < 60
+            and not line.endswith((".", ",", ";"))
             and (
-                line.isupper() or 
-                line.istitle() or 
-                lower_clean in RESUME_SECTION_HEADERS or
-                lower in RESUME_SECTION_HEADERS
+                line.isupper()
+                or line.istitle()
+                or lower_clean in RESUME_SECTION_HEADERS
+                or lower in RESUME_SECTION_HEADERS
             )
         )
-        # Add spacing before header to separate sections
         if is_header and i > 0 and spaced and spaced[-1] != "":
-            spaced.append("")  # Insert blank line before section
+            spaced.append("")
         spaced.append(line)
-    
-    logger.debug(f"Pass 5 complete: added section spacing")
+    logger.debug("Pass 5 complete: added section spacing")
 
-    # PASS 6: Collapse excessive blank lines (limit to 1 consecutive)
-    # This prevents empty space from bloating the output
-    final = []
+    # Pass 6: Collapse excessive blank lines
+    final: list[str] = []
     blank_count = 0
     for line in spaced:
         if line == "":
             blank_count += 1
-            if blank_count <= 1:  # Allow max one blank line
+            if blank_count <= 1:
                 final.append(line)
         else:
             blank_count = 0

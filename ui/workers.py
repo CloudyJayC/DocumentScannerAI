@@ -6,10 +6,11 @@ without blocking the GUI.
 """
 
 import os
+from typing import Any
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from file_handlers.pdf_handler import extract_text_from_pdf
-from analysis.ai_analysis import analyse_resume
+from analysis.ai_analysis import analyse_resume, AnalysisResult
 from utils.html_helpers import (
     render_section_header,
     render_ok_line,
@@ -41,7 +42,7 @@ class AnalysisWorker(QObject):
     analysis_ready = pyqtSignal(dict)
     finished = pyqtSignal()
 
-    def __init__(self, file_path: str, suspicious: dict):
+    def __init__(self, file_path: str, suspicious: dict[str, int]):
         """
         Initialize the analysis worker.
         
@@ -53,7 +54,7 @@ class AnalysisWorker(QObject):
         self.file_path = file_path
         self.suspicious = suspicious
 
-    def run(self):
+    def run(self) -> None:
         """
         Execute the analysis workflow.
         
@@ -120,7 +121,7 @@ class AnalysisWorker(QObject):
 
                 try:
                     logger.info(f"Starting AI analysis for: {fp}")
-                    analysis = analyse_resume(text)
+                    analysis: AnalysisResult = analyse_resume(text)
                     html += render_ai_analysis(analysis)
                     self.analysis_ready.emit(analysis)
                     logger.info(f"AI analysis completed successfully for: {fp}")
