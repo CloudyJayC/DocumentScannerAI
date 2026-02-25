@@ -1,6 +1,6 @@
 # DocumentScannerAI
 
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PyQt6](https://img.shields.io/badge/GUI-PyQt6-41CD52?logo=qt&logoColor=white)](https://www.riverbankcomputing.com/software/pyqt/)
 [![Ollama](https://img.shields.io/badge/AI-Ollama-000000)](https://ollama.com)
@@ -14,6 +14,7 @@ A PDF resume analyzer with a dark-themed GUI. Uses a local **Ollama LLM** (llama
 - **Dark-themed GUI** — PyQt6 interface with sidebar controls, no terminal required
 - **Progress Bar** — Visual indicator while analysis is running
 - **PDF Validation** — Checks file extension and PDF magic number (`%PDF-`)
+- **File Size Limit** — Enforces 50MB maximum to prevent memory issues
 - **Security Scanning** — Scans for embedded JavaScript, auto-run actions, launch commands, and hidden files
 - **Text Extraction** — Resume-specific cleanup via `pdfplumber`: detects section headers, fixes hyphenated breaks, removes junk lines, normalizes whitespace
 - **Local AI Analysis** — Uses `llama3.1:8b` running locally:
@@ -23,13 +24,13 @@ A PDF resume analyzer with a dark-themed GUI. Uses a local **Ollama LLM** (llama
   - Key skills
   - Recommendations
 - **Privacy** — All processing stays on your machine. No API keys, no accounts, no telemetry
-- **Logging** — Full audit trail written to `logs/app.log`
+- **Logging** — Full audit trail written to `scanner.log`
 
 ---
 
 ## Requirements
 
-- Python 3.12
+- Python 3.10 or higher
 - [Ollama](https://ollama.com) — local LLM platform (system install, not pip)
 
 ---
@@ -135,8 +136,8 @@ DocumentScannerAI/
 |---|---|
 | `PyQt6` | GUI framework |
 | `pdfplumber` | PDF text extraction |
-| `colorama` | Coloured output for terminal mode |
-| `anthropic` | Reserved for future cloud AI option |
+| `requests` | HTTP utilities (tests and tooling) |
+| `fpdf2` | PDF report export |
 | Ollama (system) | Local LLM server |
 
 ---

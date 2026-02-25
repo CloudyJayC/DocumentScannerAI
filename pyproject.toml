@@ -7,10 +7,10 @@ name = "DocumentScannerAI"
 version = "1.1.0"
 description = "AI-powered PDF scanner and resume analyzer with local LLM integration"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Jason Cameron"}
 ]
 keywords = ["pdf", "ai", "resume", "analyzer", "ollama", "llama"]
 classifiers = [
@@ -19,10 +19,9 @@ classifiers = [
     "Topic :: Office/Business",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
     "Environment :: X11 Applications :: Qt",
 ]
@@ -30,6 +29,7 @@ classifiers = [
 dependencies = [
     "PyQt6==6.6.1",
     "pdfplumber==0.10.3",
+    "requests==2.31.0",
     "fpdf2==2.7.9",
 ]
 
@@ -44,10 +44,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/DocumentScannerAI"
-Repository = "https://github.com/yourusername/DocumentScannerAI.git"
-"Bug Tracker" = "https://github.com/yourusername/DocumentScannerAI/issues"
-"Changelog" = "https://github.com/yourusername/DocumentScannerAI/releases"
+Homepage = "https://github.com/CloudyJayC/DocumentScannerAI"
+Repository = "https://github.com/CloudyJayC/DocumentScannerAI.git"
+"Bug Tracker" = "https://github.com/CloudyJayC/DocumentScannerAI/issues"
+"Changelog" = "https://github.com/CloudyJayC/DocumentScannerAI/releases"
 
 [project.scripts]
 document-scanner = "gui_main:main"
