@@ -115,23 +115,29 @@ AI analysis typically takes 10-60 seconds on first run while the model loads int
 ```
 DocumentScannerAI/
 ├── analysis/
+│   ├── __init__.py
 │   └── ai_analysis.py          — Ollama LLM interface and JSON parsing
 ├── file_handlers/
+│   ├── __init__.py
 │   └── pdf_handler.py          — PDF text extraction and cleaning
 ├── ui/
+│   ├── __init__.py
 │   ├── main_window.py          — Main application window and UI logic
 │   ├── workers.py              — Background worker threads
 │   └── styles.py               — Application stylesheet
 ├── utils/
+│   ├── __init__.py
 │   ├── logger.py               — Centralized logging configuration
 │   ├── validators.py           — PDF validation and security scanning
 │   └── html_helpers.py         — HTML rendering for results display
 ├── tests/
+│   ├── __init__.py
 │   └── test_*.py               — Unit and integration tests
-├── sample_resumes/             — Sample PDFs for testing
 ├── config.py                   — Centralized configuration
 ├── gui_main.py                 — Application entry point ← run this
-├── requirements.txt
+├── pyproject.toml              — Package configuration and metadata
+├── requirements.txt            — Python dependencies
+├── LICENSE                     — MIT License
 └── README.md
 ```
 
