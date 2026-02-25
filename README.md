@@ -12,6 +12,7 @@ A PDF resume analyzer with a dark-themed GUI. Uses a local **Ollama LLM** (llama
 ## Features
 
 - **Dark-themed GUI** — PyQt6 interface with sidebar controls, no terminal required
+- **Drag-and-Drop** — Drop PDF files directly onto the window for instant loading
 - **Progress Bar** — Visual indicator while analysis is running
 - **PDF Validation** — Checks file extension and PDF magic number (`%PDF-`)
 - **File Size Limit** — Enforces 50MB maximum to prevent memory issues
@@ -90,8 +91,8 @@ python gui_main.py
 
 ## Usage
 
-1. Click **Select PDF** to open a file picker
-2. The file is validated and scanned for malicious content immediately on selection
+1. Click **Select PDF** (or drag-and-drop a PDF onto the window)
+2. The file is validated and scanned for malicious content immediately
 3. If suspicious elements are found you'll be prompted to confirm before continuing
 4. Click **Run Analysis** to:
    - Run the security scan

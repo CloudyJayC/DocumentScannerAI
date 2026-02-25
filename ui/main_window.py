@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
     QProgressBar
 )
 from PyQt6.QtCore import QThread, Qt
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 from fpdf import FPDF
 
 from .workers import AnalysisWorker
@@ -56,6 +57,7 @@ class MainWindow(QMainWindow):
         self._worker: AnalysisWorker | None = None
 
         self._build_ui()
+        self.setAcceptDrops(True)  # Enable drag-and-drop
         logger.info("Main window initialized")
 
     def _build_ui(self) -> None:
@@ -249,7 +251,7 @@ class MainWindow(QMainWindow):
     # ══════════════════════════════════════════════════════════════════════════
 
     def select_pdf(self) -> None:
-        """Handle PDF file selection."""
+        """Handle PDF file selection via file dialog."""
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Select a PDF Document", "",
             "PDF Files (*.pdf);;All Files (*)"
@@ -258,7 +260,10 @@ class MainWindow(QMainWindow):
             return
 
         logger.info(f"User selected file: {file_path}")
+        self._process_file(file_path)
 
+    def _process_file(self, file_path: str) -> None:
+        """Validate and load a PDF file."""
         # Check file size first
         size_ok, size_error = check_file_size(file_path)
         if not size_ok:
@@ -512,3 +517,30 @@ class MainWindow(QMainWindow):
         finally:
             # Re-enable button
             self.exportButton.setEnabled(True)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Drag and Drop
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        """Accept drag events for PDF files."""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            if len(urls) == 1 and urls[0].toLocalFile().lower().endswith('.pdf'):
+                event.acceptProposedAction()
+                logger.debug(f"Drag enter accepted: {urls[0].toLocalFile()}")
+                return
+        event.ignore()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        """Handle dropped PDF files."""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            if len(urls) == 1:
+                file_path = urls[0].toLocalFile()
+                if file_path.lower().endswith('.pdf'):
+                    logger.info(f"File dropped: {file_path}")
+                    self._process_file(file_path)
+                    event.acceptProposedAction()
+                    return
+        event.ignore()
