@@ -174,7 +174,6 @@ Run `pip install -r requirements.txt` to make sure all dependencies are installe
 - [x] Progress bar during AI analysis
 - [x] Export analysis to PDF report
 - [ ] Support for DOCX and TXT input
-- [ ] Custom model selection in GUI
 - [ ] Camera scanner integration (OpenCV)
 
 ---
