@@ -24,13 +24,16 @@ A PDF resume analyzer with a dark-themed GUI. Uses a local **Ollama LLM** (llama
   - Weaknesses
   - Key skills
   - Recommendations
+- **Export to PDF** — Save analysis results as a formatted PDF report
 - **Privacy** — All processing stays on your machine. No API keys, no accounts, no telemetry
+- **Helpful Error Messages** — Clear, actionable guidance when something goes wrong
 - **Logging** — Full audit trail written to `scanner.log`
 
 ---
 
 ## Requirements
 
+- **Windows, macOS, or Linux** — Currently tested on Windows. macOS and Linux support coming soon.
 - Python 3.10 or higher
 - [Ollama](https://ollama.com) — local LLM platform (system install, not pip)
 
@@ -99,6 +102,9 @@ python gui_main.py
    - Extract and clean the resume text silently
    - Send it to the local AI for analysis
 5. Results appear in the main panel with colour-coded sections
+6. Click **Export Report** to save a formatted PDF of the analysis
+
+Note: If you see an error, it will include helpful instructions on what to do next.
 
 AI analysis typically takes 10-60 seconds on first run while the model loads into memory. Subsequent runs on the same session are faster.
 
@@ -172,10 +178,11 @@ Run `pip install -r requirements.txt` to make sure all dependencies are installe
 - [x] PDF validation and malicious content detection
 - [x] Resume-specific text extraction and cleaning
 - [x] Professional dark-theme GUI
+- [x] Drag-and-drop file loading
 - [x] Local AI resume analysis (strengths, weaknesses, skills, recommendations)
 - [x] Progress bar during AI analysis
 - [x] Export analysis to PDF report
-- [ ] Support for DOCX and TXT input
+- [x] User-friendly error messages
 
 ---
 

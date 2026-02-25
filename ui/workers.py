@@ -126,14 +126,20 @@ class AnalysisWorker(QObject):
                     self.analysis_ready.emit(analysis)
                     logger.info(f"AI analysis completed successfully for: {fp}")
                 except RuntimeError as ai_err:
-                    html += render_error_line(f"✗ &nbsp; AI analysis failed: {ai_err}")
+                    html += render_error_line("✗ &nbsp; AI analysis could not complete.")
+                    html += render_error_line("&nbsp;&nbsp;&nbsp;&nbsp;Please make sure Ollama is running: <b>ollama serve</b>")
+                    html += render_error_line("&nbsp;&nbsp;&nbsp;&nbsp;Then try clicking <b>Run Analysis</b> again.")
                     logger.error(f"AI analysis failed for {fp}: {ai_err}")
 
         except RuntimeError as e:
-            html += render_error_line(f"✗ &nbsp; Could not read PDF: {e}")
+            html += render_error_line("✗ &nbsp; Could not read this PDF file.")
+            html += render_error_line("&nbsp;&nbsp;&nbsp;&nbsp;The file may be corrupted, encrypted, or damaged.")
+            html += render_error_line("&nbsp;&nbsp;&nbsp;&nbsp;Try opening it in Adobe Reader first to confirm it\'s valid.")
             logger.error(f"PDF read error for {fp}: {e}")
         except Exception as e:
-            html += render_error_line(f"✗ &nbsp; Unexpected error: {e}")
+            html += render_error_line("✗ &nbsp; An unexpected error occurred.")
+            html += render_error_line("&nbsp;&nbsp;&nbsp;&nbsp;Please check <b>scanner.log</b> for technical details.")
+            html += render_error_line("&nbsp;&nbsp;&nbsp;&nbsp;Try restarting the app and selecting the file again.")
             logger.error(f"Unexpected error in worker for {fp}: {e}", exc_info=True)
 
         self.result.emit(html)

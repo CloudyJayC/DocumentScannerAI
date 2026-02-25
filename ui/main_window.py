@@ -301,7 +301,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.StandardButton.No
             )
             if reply != QMessageBox.StandardButton.Yes:
-                self.statusBar().showMessage("File rejected.")
+                self.statusBar().showMessage("● Ready · File not selected")
                 logger.info(f"User rejected suspicious file: {file_path}")
                 return
 
@@ -510,7 +510,12 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(
                 self, "Export Failed",
-                f"Failed to export report:\n\n{str(e)}"
+                f"Could not save the report PDF.\n\n"
+                f"Please check that:\n"
+                f"  • You have write permission to the folder\n"
+                f"  • You have enough disk space available\n"
+                f"  • The file name is not already open\n\n"
+                f"Try again in a different folder, or restart the app."
             )
             logger.error(f"Export error: {e}", exc_info=True)
         
