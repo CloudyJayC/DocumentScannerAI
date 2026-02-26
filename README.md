@@ -9,6 +9,16 @@ A PDF resume analyzer with a dark-themed GUI. Uses a local **Ollama LLM** (llama
 
 ---
 
+## Screenshots
+
+**PDF Loaded (Ready to Analyze)**  
+![PDF loaded](docs/screenshot_pdf_loaded.png)
+
+**Analysis Complete**  
+![Analysis results](docs/screenshot_analysis.png)
+
+---
+
 ## Features
 
 - **Dark-themed GUI** — PyQt6 interface with sidebar controls, no terminal required
@@ -179,16 +189,12 @@ Run `pip install -r requirements.txt` to make sure all dependencies are installe
 
 ---
 
-## Roadmap
+## Future Ideas
 
-- [x] PDF validation and malicious content detection
-- [x] Resume-specific text extraction and cleaning
-- [x] Professional dark-theme GUI
-- [x] Drag-and-drop file loading
-- [x] Local AI resume analysis (strengths, weaknesses, skills, recommendations)
-- [x] Progress bar during AI analysis
-- [x] Export analysis to PDF report
-- [x] User-friendly error messages
+- OpenCV camera scanning support
+- Resume scoring with a clear rubric and breakdown
+- Accessibility improvements (keyboard shortcuts, focus states)
+- Additional export formats (TXT, HTML)
 
 ---
 
